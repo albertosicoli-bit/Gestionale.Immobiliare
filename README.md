@@ -28,6 +28,8 @@ GitHub Pages ospita il frontend PWA. Per login, dati condivisi e documenti priva
 | Dati | Supabase PostgreSQL | Immobili, contratti, movimenti e permessi |
 | File | Supabase Storage privato | Contratti, bollette e contabili non pubblici |
 
+Valore stimato degli immobili e note amministrative sono conservati in una tabella separata, accessibile solo all'admin.
+
 Non usare solo `localStorage` per documenti o accessi degli inquilini: i dati resterebbero nel solo browser dell’amministratore e non sarebbero protetti per utente.
 
 ## Avvio immediato: demo locale
@@ -38,8 +40,8 @@ Apri `index.html` con un server statico oppure pubblica il progetto su GitHub Pa
 
 ### 1. Crea il progetto Supabase
 
-1. Crea un nuovo progetto su [Supabase](https://supabase.com/).
-2. In **SQL Editor**, incolla ed esegui tutto il file `supabase/schema.sql`.
+1. Crea un progetto Supabase dedicato a Property Manager, separato da eventuali progetti di altre app. Per i dati, scegli **Central EU (Frankfurt)** e salva la password del database in un password manager; non inserirla nell’app.
+2. In **SQL Editor**, incolla ed esegui tutto il file `supabase/schema.sql` una sola volta.
 3. In **Authentication > Providers**, lascia attivo Email/Password.
 4. Crea il tuo primo utente in **Authentication > Users**.
 5. Nello SQL Editor esegui, sostituendo l’indirizzo:
@@ -68,30 +70,29 @@ La funzione usa le variabili protette già disponibili in Supabase (`SUPABASE_UR
 
 ### 3. Inserisci la configurazione pubblica dell’app
 
-In Supabase vai in **Project Settings > API** e copia Project URL e la chiave `anon` pubblica. Poi modifica `config.js`:
+In Supabase apri **Connect** oppure **Project Settings > API Keys** e copia il Project URL e la **Publishable key** (`sb_publishable_...`). Poi modifica `config.js`:
 
 ```js
 window.PROPERTY_MANAGER_CONFIG = {
   supabaseUrl: "https://TUO-PROGETTO.supabase.co",
-  supabaseAnonKey: "LA_TUA_CHIAVE_ANON",
+  supabasePublishableKey: "sb_publishable_...",
   appName: "Property Manager"
 };
 ```
 
-La chiave `anon` è pensata per essere presente nel frontend. La sicurezza effettiva è garantita dalle policy RLS presenti nello schema SQL.
+La Publishable key è destinata al frontend; lo schema abilita RLS e nega l'accesso anonimo ai dati. Non inserire mai una Secret key, una `service_role` key o la password del database in `config.js` o in GitHub.
 
 ### 4. Pubblica su GitHub Pages
 
-1. Crea un repository, ad esempio `property-manager`, nell’account `albertosicoli-bit`.
-2. Carica tutti i file di questa cartella nella root del repository.
-3. In **Settings > Pages**, seleziona `Deploy from a branch` → `main` → `/ (root)`.
-4. L’indirizzo sarà:
+1. Nell’account `albertosicoli-bit`, carica i file dell’app nella root del repository `Gestionale.Immobiliare`.
+2. In **Settings > Pages**, seleziona `Deploy from a branch` → `main` → `/ (root)`.
+3. L’indirizzo sarà:
 
 ```text
-https://albertosicoli-bit.github.io/property-manager/
+https://albertosicoli-bit.github.io/Gestionale.Immobiliare/
 ```
 
-Se il repository deve restare privato, GitHub Pages pubblico non è la scelta corretta: in quel caso usa un hosting con controllo accessi. Anche con Pages pubblico, però, dati e documenti restano protetti nel backend perché non sono nel repository.
+GitHub Pages rende pubblico il sito; il repository contiene solo il frontend. Dati e documenti restano su Supabase, con accessi controllati dal database e dallo Storage privato.
 
 ## Ruoli e visibilità
 

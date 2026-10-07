@@ -4,6 +4,8 @@
  */
 window.PROPERTY_MANAGER_CONFIG = {
   supabaseUrl: "",
+  supabasePublishableKey: "",
+  // Compatibilità con progetti che mostrano ancora la vecchia chiave anon.
   supabaseAnonKey: "",
   appName: "Property Manager"
 };

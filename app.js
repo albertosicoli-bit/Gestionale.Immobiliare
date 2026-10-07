@@ -9,8 +9,9 @@
   const toastRegion = document.querySelector("#toast-region");
 
   let supabaseClient = null;
-  if (CONFIG.supabaseUrl && CONFIG.supabaseAnonKey && window.supabase?.createClient) {
-    supabaseClient = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey, {
+  const supabasePublicKey = CONFIG.supabasePublishableKey || CONFIG.supabaseAnonKey;
+  if (CONFIG.supabaseUrl && supabasePublicKey && window.supabase?.createClient) {
+    supabaseClient = window.supabase.createClient(CONFIG.supabaseUrl, supabasePublicKey, {
       auth: { persistSession: true, autoRefreshToken: true }
     });
   }
@@ -1322,7 +1323,7 @@
   async function hydrateRemoteData() {
     if (!supabaseClient || !state.sessionUser) return;
     const tables = [
-      "properties", "profiles", "leases", "lease_tenants", "rent_payments", "utility_accounts", "utility_bills", "mortgages", "financial_entries", "documents", "service_providers", "maintenance_jobs", "property_tenant_permissions"
+      "properties", "property_private_details", "profiles", "leases", "lease_tenants", "rent_payments", "utility_accounts", "utility_bills", "mortgages", "financial_entries", "documents", "service_providers", "maintenance_jobs", "property_tenant_permissions"
     ];
     const results = await Promise.all(tables.map(async (table) => {
       const { data, error } = await supabaseClient.from(table).select("*");
@@ -1337,7 +1338,14 @@
     });
     state.data = {
       version: 1,
-      properties: remote.properties,
+      properties: remote.properties.map((property) => {
+        const details = remote.property_private_details.find((detail) => detail.property_id === property.id);
+        return {
+          ...property,
+          estimated_value: details?.estimated_value ?? 0,
+          notes: details?.notes ?? ""
+        };
+      }),
       profiles: remote.profiles,
       leases: remote.leases.map((lease) => ({ ...lease, tenant_ids: tenantIdsByLease.get(lease.id) || [] })),
       rent_payments: remote.rent_payments.map((payment) => ({ ...payment, period: String(payment.period || "").slice(0, 7) })),
@@ -1396,7 +1404,10 @@
   async function syncEntity(type, item, mode) {
     if (!supabaseClient || !state.sessionUser) return;
     const mapping = {
-      property: ["properties", (value) => value],
+      property: ["properties", (value) => {
+        const { estimated_value, notes, ...publicFields } = value;
+        return publicFields;
+      }],
       provider: ["service_providers", (value) => value],
       maintenance: ["maintenance_jobs", (value) => value],
       financial: ["financial_entries", (value) => value],
@@ -1411,6 +1422,14 @@
     const request = mode === "update" ? supabaseClient.from(table).update(payload).eq("id", item.id) : supabaseClient.from(table).insert(payload);
     const { error } = await request;
     if (error) throw new Error(`Salvataggio remoto non riuscito: ${error.message}`);
+    if (type === "property") {
+      const { error: privateError } = await supabaseClient.from("property_private_details").upsert({
+        property_id: item.id,
+        estimated_value: Number(item.estimated_value || 0),
+        notes: item.notes || ""
+      });
+      if (privateError) throw new Error(`Salvataggio dei dettagli riservati non riuscito: ${privateError.message}`);
+    }
     if (type === "utility") {
       const bills = state.data.utility_bills.filter((bill) => bill.utility_id === item.id);
       if (bills.length) {

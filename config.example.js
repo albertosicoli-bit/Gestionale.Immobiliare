@@ -1,5 +1,5 @@
 window.PROPERTY_MANAGER_CONFIG = {
   supabaseUrl: "https://TUO-PROGETTO.supabase.co",
-  supabaseAnonKey: "INCOLLA_LA_CHIAVE_ANON_PUBBLICA",
+  supabasePublishableKey: "sb_publishable_...",
   appName: "Property Manager"
 };
