@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Property Manager: gestione immobili, inquilini, pagamenti, utenze e manutenzioni."
+    />
+    <meta name="theme-color" content="#123047" />
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="assets/icon.svg" />
+    <title>Property Manager</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <noscript>Per usare Property Manager è necessario abilitare JavaScript.</noscript>
+    <div id="app"></div>
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <dialog id="app-dialog" class="app-dialog"></dialog>
+
+    <!-- La chiave anon di Supabase è pubblica per natura: la protezione reale è nelle policy RLS. -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

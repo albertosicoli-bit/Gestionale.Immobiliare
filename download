@@ -1,0 +1,5 @@
+# Configurazione locale con chiavi del backend
+config.local.js
+
+# File di sistema
+.DS_Store
