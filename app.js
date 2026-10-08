@@ -26,6 +26,7 @@
     mode: null,
     activeView: "dashboard",
     selectedPropertyId: null,
+    selectedTenantId: null,
     propertyTab: "overview",
     propertyFilter: "all",
     propertySearch: "",
@@ -369,6 +370,7 @@
     state.data = demoData();
     state.activeView = "dashboard";
     state.selectedPropertyId = null;
+    state.selectedTenantId = null;
     state.propertyFilter = "all";
     state.propertySearch = "";
     persistData();
@@ -425,10 +427,14 @@
       personal: "Personale",
       maintenance: "In manutenzione",
       active: "Attivo",
+      ended: "Terminato",
+      draft: "Bozza",
       pending: "Da pagare",
       paid: "Pagato",
       partial: "Parziale",
       late: "In ritardo",
+      missing: "Non registrato",
+      upcoming: "In scadenza",
       scheduled: "Programmato",
       done: "Concluso",
       cancelled: "Annullato"
@@ -463,6 +469,10 @@
 
   function getPrimaryLease(propertyId) {
     return getActiveLeases(propertyId)[0] || null;
+  }
+
+  function getTenantLeases(tenantId) {
+    return state.data.leases.filter((lease) => (lease.tenant_ids || []).includes(tenantId));
   }
 
   function getPermissions(propertyId, tenantId) {
@@ -515,6 +525,45 @@
       .filter((lease) => lease.status === "active" && (lease.tenant_ids || []).includes(tenantId))
       .map((lease) => lease.property_id);
     return state.data.properties.filter((property) => propertyIds.includes(property.id));
+  }
+
+  function monthPeriod(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  function leaseRentLedger(lease) {
+    if (!lease.start_date) return [];
+    const start = new Date(`${String(lease.start_date).slice(0, 10)}T12:00:00`);
+    const today = new Date();
+    const currentPeriod = isoMonth();
+    const end = lease.end_date ? new Date(`${String(lease.end_date).slice(0, 10)}T12:00:00`) : today;
+    if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf())) return [];
+    const first = new Date(start.getFullYear(), start.getMonth(), 1);
+    const last = new Date(end.getFullYear(), end.getMonth(), 1);
+    if (last < first) return [];
+    const ledger = [];
+    for (const cursor = new Date(first); cursor <= last; cursor.setMonth(cursor.getMonth() + 1)) {
+      const period = monthPeriod(cursor);
+      const payment = state.data.rent_payments.find((item) => item.lease_id === lease.id && String(item.period || "").slice(0, 7) === period);
+      const amountDue = Number(payment?.amount_due ?? lease.monthly_rent ?? 0);
+      const amountPaid = payment
+        ? Number(payment.amount_paid || (payment.status === "paid" ? amountDue : 0))
+        : 0;
+      const dueDay = Math.min(28, Math.max(1, Number(lease.due_day || 5)));
+      const dueDate = payment?.due_date || `${period}-${String(dueDay).padStart(2, "0")}`;
+      const overdue = dueDate < dateISO();
+      let status;
+      if (payment) {
+        status = payment.status === "cancelled" ? "cancelled"
+          : amountPaid >= amountDue && amountDue > 0 ? "paid"
+          : amountPaid > 0 || payment.status === "partial" ? "partial"
+          : (payment.status === "late" || overdue) ? "late" : "pending";
+      } else {
+        status = period > currentPeriod || !overdue ? "upcoming" : "missing";
+      }
+      ledger.push({ lease, period, dueDate, amountDue, amountPaid, payment, status });
+    }
+    return ledger;
   }
 
   function isDemo() {
@@ -635,14 +684,17 @@
   }
 
   function navButton(item) {
-    return `<button class="nav-button ${state.activeView === item.id ? "active" : ""}" data-action="navigate" data-view="${item.id}"><span class="nav-icon">${item.icon}</span>${esc(item.label)}</button>`;
+    const active = state.activeView === item.id || (state.activeView === "tenant" && item.id === "people");
+    return `<button class="nav-button ${active ? "active" : ""}" data-action="navigate" data-view="${item.id}"><span class="nav-icon">${item.icon}</span>${esc(item.label)}</button>`;
   }
 
   function mobileNavButton(item) {
-    return `<button class="${state.activeView === item.id ? "active" : ""}" data-action="navigate" data-view="${item.id}"><span>${item.icon}</span>${esc(item.label)}</button>`;
+    const active = state.activeView === item.id || (state.activeView === "tenant" && item.id === "people");
+    return `<button class="${active ? "active" : ""}" data-action="navigate" data-view="${item.id}"><span>${item.icon}</span>${esc(item.label)}</button>`;
   }
 
   function pageMeta() {
+    const tenant = getProfile(state.selectedTenantId);
     const meta = {
       dashboard: { title: "Buongiorno, Alberto", subtitle: "Panoramica del patrimonio e delle attività da seguire.", action: "add-property", actionLabel: "+ Nuovo immobile" },
       properties: { title: "Immobili", subtitle: "Schede, contratti, utenze, mutui e documenti.", action: "add-property", actionLabel: "+ Nuovo immobile" },
@@ -650,6 +702,7 @@
       finance: { title: "Conto economico", subtitle: "Entrate e uscite per avere un quadro netto del portafoglio.", action: "add-financial", actionLabel: "+ Registra movimento" },
       maintenance: { title: "Manutenzioni", subtitle: "Fornitori, lavori eseguiti e costi di intervento.", action: "add-maintenance", actionLabel: "+ Nuovo intervento" },
       people: { title: "Persone", subtitle: "Inquilini e manutentori collegati alle proprietà.", action: "add-tenant", actionLabel: "+ Nuovo inquilino" },
+      tenant: { title: tenant?.display_name || "Scheda inquilino", subtitle: "Contratti, canoni, bollette e storico personale.", action: null, actionLabel: "" },
       settings: { title: "Impostazioni e accessi", subtitle: "Connessione sicura, ruoli e gestione del prototipo.", action: null, actionLabel: "" }
     };
     return meta[state.activeView] || meta.dashboard;
@@ -665,6 +718,7 @@
       finance: renderFinance,
       maintenance: renderMaintenance,
       people: renderPeople,
+      tenant: renderTenantDetail,
       settings: renderSettings
     };
     content.innerHTML = (renderers[state.activeView] || renderDashboard)();
@@ -930,7 +984,61 @@
   function renderPeople() {
     const tenants = state.data.profiles.filter((profile) => profile.role === "tenant");
     const providers = state.data.service_providers;
-    return `<div class="split"><section class="panel"><div class="panel-head"><div><h2>Inquilini</h2><p>Ogni inquilino può avere credenziali proprie e più persone possono condividere lo stesso contratto.</p></div><button class="button small" data-action="add-tenant">+ Nuovo inquilino</button></div>${tenants.length ? `<div class="table-wrap"><table><thead><tr><th>Inquilino</th><th>Immobile</th><th>Contatto</th><th>Profilo</th></tr></thead><tbody>${tenants.map((tenant) => { const properties = tenantProperties(tenant.id); return `<tr><td><strong>${esc(tenant.display_name)}</strong><br><small>@${esc(tenant.username || "utente")}</small></td><td>${properties.length ? properties.map((property) => esc(property.name)).join("<br>") : "—"}</td><td>${esc(tenant.phone || tenant.email || "—")}</td><td>${badge("active")}</td></tr>`; }).join("")}</tbody></table></div>` : empty("♙", "Nessun inquilino", "Crea un profilo e poi collegalo a un contratto.")}</section><section class="panel"><div class="panel-head"><div><h2>Manutentori</h2><p>Profili professionali riutilizzabili per ogni casa.</p></div><button class="button secondary small" data-action="add-provider">+ Fornitore</button></div><div class="task-list">${providers.length ? providers.map(providerCard).join("") : empty("⌁", "Nessun manutentore", "Aggiungi la tua rubrica di fiducia.")}</div></section></div>`;
+    return `<div class="split"><section class="panel"><div class="panel-head"><div><h2>Inquilini</h2><p>Apri una scheda per consultare contratto, canoni e bollette di ogni persona.</p></div><button class="button small" data-action="add-tenant">+ Nuovo inquilino</button></div>${tenants.length ? `<div class="table-wrap"><table><thead><tr><th>Inquilino</th><th>Immobile</th><th>Contatto</th><th>Profilo</th><th></th></tr></thead><tbody>${tenants.map((tenant) => { const properties = tenantProperties(tenant.id); return `<tr><td><strong>${esc(tenant.display_name)}</strong><br><small>@${esc(tenant.username || "utente")}</small></td><td>${properties.length ? properties.map((property) => esc(property.name)).join("<br>") : "—"}</td><td>${esc(tenant.phone || tenant.email || "—")}</td><td>${badge("active")}</td><td><button class="button secondary small" data-action="open-tenant" data-tenant-id="${esc(tenant.id)}">Apri scheda</button></td></tr>`; }).join("")}</tbody></table></div>` : empty("♙", "Nessun inquilino", "Crea un profilo e poi collegalo a un contratto.")}</section><section class="panel"><div class="panel-head"><div><h2>Manutentori</h2><p>Profili professionali riutilizzabili per ogni casa.</p></div><button class="button secondary small" data-action="add-provider">+ Fornitore</button></div><div class="task-list">${providers.length ? providers.map(providerCard).join("") : empty("⌁", "Nessun manutentore", "Aggiungi la tua rubrica di fiducia.")}</div></section></div>`;
+  }
+
+  function renderTenantDetail() {
+    const tenant = getProfile(state.selectedTenantId);
+    if (!tenant) return `<section class="panel">${empty("♙", "Inquilino non trovato", "Torna all’elenco e seleziona una scheda valida.")}<div style="padding:0 20px 20px"><button class="button secondary" data-action="navigate" data-view="people">← Torna a Persone</button></div></section>`;
+
+    const leases = getTenantLeases(tenant.id).sort((a, b) => String(b.start_date).localeCompare(String(a.start_date)));
+    const ledger = leases.flatMap(leaseRentLedger).sort((a, b) => String(b.period).localeCompare(String(a.period)));
+    const dueRows = ledger.filter((row) => row.dueDate <= dateISO());
+    const paidRows = dueRows.filter((row) => row.status === "paid");
+    const outstanding = dueRows.reduce((sum, row) => sum + Math.max(0, row.amountDue - row.amountPaid), 0);
+    const activeLeases = leases.filter((lease) => lease.status === "active");
+    const activeRent = activeLeases.reduce((sum, lease) => sum + Number(lease.monthly_rent || 0), 0);
+    const nextEnd = activeLeases.map((lease) => lease.end_date).filter(Boolean).sort()[0];
+    const propertyIds = [...new Set(leases.map((lease) => lease.property_id))];
+    const tenantUtilities = state.data.utility_accounts.filter((utility) => propertyIds.includes(utility.property_id) && (utility.recharged_to_tenant || utility.holder === "tenant"));
+    const utilityIds = new Set(tenantUtilities.map((utility) => utility.id));
+    const bills = state.data.utility_bills
+      .filter((bill) => propertyIds.includes(bill.property_id) && utilityIds.has(bill.utility_id))
+      .sort((a, b) => String(b.period).localeCompare(String(a.period)));
+    const utilitySection = tenantUtilities.length
+      ? `<section class="panel"><div class="panel-head"><div><h2>Bollette dell’inquilino</h2><p>Utenze intestate all’inquilino o riaddebitate dall’amministratore.</p></div></div><div class="callout history-note">Le bollette sono associate all’immobile, non a un singolo coinquilino: se il contratto è condiviso lo stato vale per la casa.</div>${bills.length ? `<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Immobile</th><th>Utenza</th><th>Scadenza</th><th>Importo</th><th>Stato</th><th></th></tr></thead><tbody>${bills.map((bill) => tenantUtilityBillRow(bill, tenantUtilities)).join("")}</tbody></table></div>` : empty("▤", "Nessuna bolletta registrata", "Le bollette collegate a queste utenze compariranno qui.")}</section>`
+      : `<section class="panel">${empty("⚡", "Nessuna utenza riaddebitata", "Nella scheda dell’immobile indica quali utenze vengono riaddebitate all’inquilino.")}</section>`;
+
+    return `<div class="stack">
+      <button class="button ghost small back-link" data-action="navigate" data-view="people">← Torna a Persone</button>
+      <section class="property-hero tenant-profile-hero"><div><div class="eyebrow">SCHEDA INQUILINO</div><h2>${esc(tenant.display_name)}</h2><p>${esc(tenant.email || tenant.username || "Profilo inquilino")}${tenant.phone ? ` · ${esc(tenant.phone)}` : ""}</p><div class="property-hero-meta"><span class="hero-pill">${leases.length} ${leases.length === 1 ? "contratto" : "contratti"}</span><span class="hero-pill">${propertyIds.length} ${propertyIds.length === 1 ? "immobile" : "immobili"}</span></div></div>${activeLeases.length ? `<button class="button hero-action" data-action="add-payment" data-property-id="${esc(activeLeases[0].property_id)}" data-lease-id="${esc(activeLeases[0].id)}">+ Registra canone</button>` : ""}</section>
+      <section class="detail-grid tenant-summary-grid">
+        <article class="data-tile"><span>Canone mensile attivo</span><strong>${activeLeases.length ? money(activeRent) : "Nessun contratto attivo"}</strong></article>
+        <article class="data-tile"><span>Fine contratto più vicina</span><strong>${nextEnd ? dateLabel(nextEnd) : "—"}</strong></article>
+        <article class="data-tile"><span>Mesi pagati / scaduti</span><strong>${paidRows.length} / ${dueRows.length}</strong></article>
+        <article class="data-tile"><span>Residuo atteso da verificare</span><strong>${money(outstanding)}</strong></article>
+      </section>
+      <section class="panel"><div class="panel-head"><div><h2>Contratti</h2><p>Data di ingresso, scadenza e importo pattuito.</p></div></div>${leases.length ? `<div class="contract-list">${leases.map((lease) => `<article class="contract-summary"><div class="section-head"><div><h3>${esc(lease.contract_reference || getProperty(lease.property_id)?.name || "Contratto di locazione")}</h3><p>${esc(getProperty(lease.property_id)?.name || "Immobile non disponibile")} · ${dateLabel(lease.start_date)} — ${dateLabel(lease.end_date)}</p></div>${badge(lease.status === "active" ? "active" : lease.status)}</div><div class="detail-grid"><article class="data-tile"><span>Canone mensile</span><strong>${money(lease.monthly_rent)}</strong></article><article class="data-tile"><span>Deposito</span><strong>${money(lease.deposit)}</strong></article><article class="data-tile"><span>Scadenza mensile</span><strong>Giorno ${esc(lease.due_day || "—")}</strong></article></div></article>`).join("")}</div>` : empty("▤", "Nessun contratto collegato", "Collega l’inquilino a un contratto dalla scheda dell’immobile.")}</section>
+      <section class="panel"><div class="panel-head"><div><h2>Storico canoni</h2><p>Una riga per ogni mese del contratto. I mesi senza registrazione sono da verificare.</p></div></div>${ledger.length ? `<div class="callout history-note">Se più inquilini condividono lo stesso contratto, importo e stato del canone sono riferiti al contratto condiviso.</div><div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Immobile</th><th>Scadenza</th><th>Dovuto</th><th>Pagato</th><th>Stato</th><th></th></tr></thead><tbody>${ledger.map((row) => rentLedgerRow(row)).join("")}</tbody></table></div>` : empty("€", "Nessuno storico canoni", "Le rate mensili compariranno qui quando è presente un contratto.")}</section>
+      ${utilitySection}
+    </div>`;
+  }
+
+  function rentLedgerRow(row) {
+    let action = "";
+    if (!row.payment && row.status !== "upcoming") {
+      action = `<button class="button secondary small" data-action="add-payment" data-property-id="${esc(row.lease.property_id)}" data-lease-id="${esc(row.lease.id)}" data-period="${esc(row.period)}" data-due-date="${esc(row.dueDate)}">Registra canone</button>`;
+    } else if (row.payment && row.status !== "cancelled") {
+      const nextStatus = row.status === "paid" ? "pending" : "paid";
+      action = `<button class="button secondary small" data-action="set-rent-payment-status" data-lease-id="${esc(row.lease.id)}" data-period="${esc(row.period)}" data-status="${nextStatus}">${row.status === "paid" ? "Riapri" : "Segna pagato"}</button>`;
+    }
+    return `<tr><td><strong>${esc(monthLabel(row.period))}</strong><br><small>${esc(row.lease.contract_reference || "Contratto")}</small></td><td>${esc(getProperty(row.lease.property_id)?.name || "—")}</td><td>${dateLabel(row.dueDate)}</td><td class="number">${money(row.amountDue)}</td><td class="number">${money(row.amountPaid)}</td><td>${badge(row.status)}${row.status === "missing" ? `<br><small>da verificare</small>` : ""}</td><td>${action}</td></tr>`;
+  }
+
+  function tenantUtilityBillRow(bill, utilities) {
+    const utility = utilities.find((item) => item.id === bill.utility_id);
+    const nextStatus = bill.status === "paid" ? "pending" : "paid";
+    return `<tr><td>${esc(monthLabel(bill.period))}</td><td>${esc(getProperty(bill.property_id)?.name || "—")}</td><td>${esc(utility?.kind || "Utenza")}</td><td>${dateLabel(bill.due_date)}</td><td class="number">${money(bill.amount)}</td><td>${badge(bill.status)}</td><td><button class="button secondary small" data-action="set-utility-bill-status" data-bill-id="${esc(bill.id)}" data-status="${nextStatus}">${bill.status === "paid" ? "Segna da pagare" : "Segna pagata"}</button></td></tr>`;
   }
 
   function renderSettings() {
@@ -1023,7 +1131,8 @@
   }
 
   function openForm(kind, context = {}) {
-    const property = context.propertyId ? getProperty(context.propertyId) : null;
+    const contextLease = context.leaseId ? getLease(context.leaseId) : null;
+    const property = context.propertyId ? getProperty(context.propertyId) : contextLease ? getProperty(contextLease.property_id) : null;
     if (kind === "property") {
       const item = context.propertyId ? getProperty(context.propertyId) : null;
       const body = `<form data-form="property" data-property-id="${esc(item?.id || "")}"><div class="form-grid">${field("Nome identificativo", "name", "text", item?.name || "", { required: true, placeholder: "es. Appartamento Via Gramsci" })}${selectField("Stato", "status", item?.status || "rented", [["rented", "Fittata"], ["vacant", "Sfitta"], ["personal", "Personale"], ["maintenance", "In manutenzione"]])}${field("Indirizzo", "address", "text", item?.address || "", { required: true })}${field("Città", "city", "text", item?.city || "", { required: true })}${field("CAP", "postal_code", "text", item?.postal_code || "")}${field("Tipologia", "type", "text", item?.type || "Appartamento")}${field("Valore stimato", "estimated_value", "number", item?.estimated_value || "", { attributes: "min=0 step=1000" })}<div class="field"><label for="field-notes">Note</label><textarea id="field-notes" name="notes" placeholder="Informazioni utili sulla proprietà">${esc(item?.notes || "")}</textarea></div></div><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">${item ? "Salva modifiche" : "Crea immobile"}</button></div></form>`;
@@ -1051,7 +1160,7 @@
       return;
     }
     if (kind === "utility") {
-      const body = `<form data-form="utility"><div class="form-grid">${selectField("Immobile", "property_id", context.propertyId || "", state.data.properties.map((p) => [p.id, p.name]))}${selectField("Tipologia utenza", "kind", "Luce", [["Luce", "Luce"], ["Gas", "Gas"], ["Acqua", "Acqua"], ["Internet", "Internet"], ["Condominio", "Condominio"], ["TARI", "TARI"], ["Altro", "Altro"]])}${field("Fornitore", "provider", "text", "", { required: true })}${selectField("Intestatario", "holder", "owner", [["owner", "Proprietario"], ["tenant", "Inquilino"]])}${field("Codice contratto/POD/PDR", "contract_code", "text", "")}${selectField("Riaddebitata all’inquilino", "recharged_to_tenant", "false", [["false", "No"], ["true", "Sì"]])}${field("Importo bolletta", "amount", "number", "", { attributes: "min=0 step=0.01" })}${field("Scadenza bolletta", "due_date", "date", dateISO(10))}${field("Periodo bolletta", "period", "month", isoMonth())}<div class="field span-2"><label for="field-notes">Note</label><textarea id="field-notes" name="notes" placeholder="Eventuali regole di rimborso o dettagli"></textarea></div></div><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">Salva utenza</button></div></form>`;
+      const body = `<form data-form="utility"><div class="form-grid">${selectField("Immobile", "property_id", context.propertyId || "", state.data.properties.map((p) => [p.id, p.name]))}${selectField("Tipologia utenza", "kind", "Luce", [["Luce", "Luce"], ["Gas", "Gas"], ["Acqua", "Acqua"], ["Internet", "Internet"], ["Condominio", "Condominio"], ["TARI", "TARI"], ["Altro", "Altro"]])}${field("Fornitore", "provider", "text", "", { required: true })}${selectField("Intestatario", "holder", "owner", [["owner", "Proprietario"], ["tenant", "Inquilino"]])}${field("Codice contratto/POD/PDR", "contract_code", "text", "")}${selectField("Riaddebitata all’inquilino", "recharged_to_tenant", "false", [["false", "No"], ["true", "Sì"]])}${field("Importo bolletta", "amount", "number", "", { attributes: "min=0 step=0.01" })}${field("Scadenza bolletta", "due_date", "date", dateISO(10))}${field("Periodo bolletta", "period", "month", isoMonth())}${selectField("Stato bolletta", "bill_status", "pending", [["pending", "Da pagare"], ["paid", "Pagata"], ["partial", "Parziale"], ["late", "In ritardo"]])}<div class="field span-2"><label for="field-notes">Note</label><textarea id="field-notes" name="notes" placeholder="Eventuali regole di rimborso o dettagli"></textarea></div></div><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">Salva utenza</button></div></form>`;
       openDialog(dialogTemplate("Utenza e bolletta", "Registra l’intestatario e, se presente, la prima bolletta/scadenza.", body));
       return;
     }
@@ -1061,9 +1170,11 @@
       return;
     }
     if (kind === "payment") {
-      const activeLease = property ? getPrimaryLease(property.id) : null;
+      const activeLease = contextLease || (property ? getPrimaryLease(property.id) : null);
       if (!activeLease) { toast("Collega prima un contratto attivo a questo immobile.", "error"); return; }
-      const body = `<form data-form="payment"><input type="hidden" name="property_id" value="${esc(property.id)}" /><input type="hidden" name="lease_id" value="${esc(activeLease.id)}" /><div class="form-grid">${field("Periodo", "period", "month", isoMonth(), { required: true })}${field("Scadenza", "due_date", "date", `${isoMonth()}-${String(activeLease.due_day).padStart(2, "0")}`, { required: true })}${field("Importo dovuto", "amount_due", "number", activeLease.monthly_rent, { required: true, attributes: "min=0 step=0.01" })}${selectField("Stato iniziale", "status", "pending", [["pending", "Da pagare"], ["paid", "Pagato"], ["partial", "Parziale"]])}</div><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">Crea canone</button></div></form>`;
+      const period = context.period || isoMonth();
+      const dueDate = context.dueDate || `${period}-${String(activeLease.due_day || 5).padStart(2, "0")}`;
+      const body = `<form data-form="payment" data-tenant-id="${esc(context.tenantId || "")}"><input type="hidden" name="property_id" value="${esc(activeLease.property_id)}" /><input type="hidden" name="lease_id" value="${esc(activeLease.id)}" /><div class="form-grid">${field("Periodo", "period", "month", period, { required: true })}${field("Scadenza", "due_date", "date", dueDate, { required: true })}${field("Importo dovuto", "amount_due", "number", activeLease.monthly_rent, { required: true, attributes: "min=0 step=0.01" })}${selectField("Stato iniziale", "status", "pending", [["pending", "Da pagare"], ["paid", "Pagato"], ["partial", "Parziale"]])}</div><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">Crea canone</button></div></form>`;
       openDialog(dialogTemplate("Nuovo canone", "Crea una richiesta mensile per gli inquilini del contratto attivo.", body));
       return;
     }
@@ -1098,6 +1209,7 @@
       state.mode = "admin";
       state.profile = { id: "admin-demo", role: "admin", display_name: "Alberto Sicoli" };
       state.activeView = "dashboard";
+      state.selectedTenantId = null;
       render();
       return;
     }
@@ -1113,6 +1225,7 @@
       state.sessionUser = null;
       state.profile = null;
       state.activeView = "dashboard";
+      state.selectedTenantId = null;
       closeDialog();
       render();
       return;
@@ -1120,6 +1233,7 @@
     if (action === "navigate") {
       state.activeView = target.dataset.view;
       if (state.activeView !== "property") state.selectedPropertyId = null;
+      if (state.activeView !== "tenant") state.selectedTenantId = null;
       renderShell();
       return;
     }
@@ -1127,6 +1241,13 @@
       state.selectedPropertyId = target.dataset.propertyId;
       state.activeView = "property";
       state.propertyTab = "overview";
+      renderShell();
+      return;
+    }
+    if (action === "open-tenant") {
+      state.selectedTenantId = target.dataset.tenantId;
+      state.selectedPropertyId = null;
+      state.activeView = "tenant";
       renderShell();
       return;
     }
@@ -1148,7 +1269,31 @@
     if (action === "add-financial") return openForm("financial", { propertyId: target.dataset.propertyId || "" });
     if (action === "add-utility") return openForm("utility", { propertyId: target.dataset.propertyId || "" });
     if (action === "add-document") return openForm("document", { propertyId: target.dataset.propertyId || "" });
-    if (action === "add-payment") return openForm("payment", { propertyId: target.dataset.propertyId || "" });
+    if (action === "add-payment") return openForm("payment", {
+      propertyId: target.dataset.propertyId || "",
+      leaseId: target.dataset.leaseId || "",
+      tenantId: state.selectedTenantId || "",
+      period: target.dataset.period || "",
+      dueDate: target.dataset.dueDate || ""
+    });
+    if (action === "set-rent-payment-status") {
+      try {
+        await setRentPaymentStatus(target.dataset.leaseId, target.dataset.period, target.dataset.status);
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Non è stato possibile aggiornare il canone.", "error");
+      }
+      return;
+    }
+    if (action === "set-utility-bill-status") {
+      try {
+        await setUtilityBillStatus(target.dataset.billId, target.dataset.status);
+      } catch (error) {
+        console.error(error);
+        toast(error.message || "Non è stato possibile aggiornare la bolletta.", "error");
+      }
+      return;
+    }
     if (action === "upload-payment") return openForm("payment-proof", { paymentId: target.dataset.paymentId || "", propertyId: target.dataset.propertyId || "" });
     if (action === "open-payment") return openForm("payment-proof", { paymentId: target.dataset.paymentId || "", propertyId: state.data.rent_payments.find((item) => item.id === target.dataset.paymentId)?.property_id || "" });
     if (action === "edit-permissions") return openForm("permissions", { propertyId: target.dataset.propertyId, tenantId: target.dataset.tenantId });
@@ -1243,7 +1388,7 @@
         const utility = { id: newId(), property_id: value("property_id"), kind: value("kind"), provider: value("provider"), holder: value("holder"), recharged_to_tenant: value("recharged_to_tenant") === "true", contract_code: value("contract_code"), notes: value("notes") };
         state.data.utility_accounts.push(utility);
         const amount = Number(value("amount") || 0);
-        if (amount > 0) state.data.utility_bills.push({ id: newId(), utility_id: utility.id, property_id: utility.property_id, period: value("period"), due_date: value("due_date"), amount, status: "pending", document_name: "" });
+        if (amount > 0) state.data.utility_bills.push({ id: newId(), utility_id: utility.id, property_id: utility.property_id, period: value("period"), due_date: value("due_date"), amount, status: value("bill_status") || "pending", document_name: "" });
         await syncEntity("utility", utility, "insert");
         finishMutation("Utenza salvata.");
         return;
@@ -1260,7 +1405,7 @@
       }
       if (type === "payment") {
         const lease = getLease(value("lease_id"));
-        const payment = { id: newId(), property_id: value("property_id"), lease_id: value("lease_id"), tenant_id: lease?.tenant_ids?.[0] || null, period: value("period"), due_date: value("due_date"), amount_due: Number(value("amount_due")), amount_paid: value("status") === "paid" ? Number(value("amount_due")) : 0, paid_at: value("status") === "paid" ? dateISO() : "", status: value("status"), receipt_name: "" };
+        const payment = { id: newId(), property_id: value("property_id"), lease_id: value("lease_id"), tenant_id: form.dataset.tenantId || lease?.tenant_ids?.[0] || null, period: value("period"), due_date: value("due_date"), amount_due: Number(value("amount_due")), amount_paid: value("status") === "paid" ? Number(value("amount_due")) : 0, paid_at: value("status") === "paid" ? dateISO() : null, status: value("status"), receipt_name: "" };
         state.data.rent_payments.push(payment);
         await syncEntity("payment", payment, "insert");
         finishMutation("Canone creato.");
@@ -1299,6 +1444,29 @@
     closeDialog();
     render();
     toast(message);
+  }
+
+  async function setRentPaymentStatus(leaseId, period, status) {
+    const payment = state.data.rent_payments.find((item) => item.lease_id === leaseId && String(item.period || "").slice(0, 7) === period);
+    if (!payment) throw new Error("Canone non trovato. Registra prima il mese selezionato.");
+    const updated = {
+      ...payment,
+      status,
+      amount_paid: status === "paid" ? Number(payment.amount_due || 0) : 0,
+      paid_at: status === "paid" ? dateISO() : null
+    };
+    await syncEntity("payment", updated, "update");
+    Object.assign(payment, updated);
+    finishMutation(status === "paid" ? "Canone segnato come pagato." : "Canone riaperto come da pagare.");
+  }
+
+  async function setUtilityBillStatus(billId, status) {
+    const bill = state.data.utility_bills.find((item) => item.id === billId);
+    if (!bill) throw new Error("Bolletta non trovata.");
+    const updated = { ...bill, status };
+    await syncEntity("utilityBill", updated, "update");
+    Object.assign(bill, updated);
+    finishMutation(status === "paid" ? "Bolletta segnata come pagata." : "Bolletta segnata come da pagare.");
   }
 
   async function login(email, password) {
@@ -1412,6 +1580,7 @@
       maintenance: ["maintenance_jobs", (value) => value],
       financial: ["financial_entries", (value) => value],
       utility: ["utility_accounts", (value) => value],
+      utilityBill: ["utility_bills", (value) => ({ ...value, period: value.period?.length === 7 ? `${value.period}-01` : value.period })],
       document: ["documents", (value) => ({ ...value, uploaded_by: state.sessionUser.id })],
       payment: ["rent_payments", (value) => ({ ...value, period: value.period?.length === 7 ? `${value.period}-01` : value.period })],
       permissions: ["property_tenant_permissions", (value) => value]

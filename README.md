@@ -14,6 +14,7 @@ PWA per gestire un piccolo o medio portafoglio immobiliare: una scheda per ogni 
   - conto economico per singola casa.
 - Rubrica di elettricisti, idraulici, muratori e altri fornitori, con intervento, attività svolta e costo.
 - Portale inquilino: visualizza solo la propria abitazione, carica la contabile e vede esclusivamente le sezioni abilitate dall’amministratore.
+- Scheda per singolo inquilino con contratti, date, canone, storico mensile dei pagamenti e bollette riaddebitate.
 - Permessi per ogni inquilino e immobile: documenti, utenze, manutenzioni e upload contabile.
 - Esportazione CSV e installazione PWA su computer o telefono.
 
