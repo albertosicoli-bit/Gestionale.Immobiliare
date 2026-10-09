@@ -1,0 +1,18 @@
+ACCESSI REALI PER PROPERTY MANAGER
+
+Questo aggiornamento disattiva la modalità demo e mostra il login Supabase.
+Gli utenti già registrati in Supabase Auth potranno usare le stesse credenziali.
+
+1. Su GitHub, nel repository Gestionale.Immobiliare, sostituisci il file app.js con quello di questo pacchetto.
+2. Su GitHub, apri il file config.js già presente e inserisci il Project URL e la Publishable key del progetto Supabase:
+
+window.PROPERTY_MANAGER_CONFIG = {
+  supabaseUrl: "https://TUO-PROGETTO.supabase.co",
+  supabasePublishableKey: "sb_publishable_...",
+  appName: "Property Manager"
+};
+
+3. Se gli utenti esistevano in Authentication > Users prima di installare lo schema, apri supabase/sync_existing_auth_users.sql, copialo nel SQL Editor di Supabase ed eseguilo. Crea solo le schede profilo mancanti; non cambia ruoli già assegnati.
+4. Attendi la pubblicazione di GitHub Pages e accedi con email e password degli account già registrati.
+
+Non sostituire config.js con un file vuoto. Non usare Secret key, service_role key o password del database nel frontend.

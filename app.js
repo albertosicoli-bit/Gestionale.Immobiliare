@@ -34,8 +34,27 @@
     sessionUser: null,
     profile: null,
     loading: false,
-    data: loadData()
+    // I dati remoti vengono caricati solo dopo un accesso Supabase valido.
+    data: emptyData()
   };
+
+  function emptyData() {
+    return {
+      version: 1,
+      properties: [],
+      profiles: [],
+      leases: [],
+      rent_payments: [],
+      utility_accounts: [],
+      utility_bills: [],
+      mortgages: [],
+      financial_entries: [],
+      documents: [],
+      service_providers: [],
+      maintenance_jobs: [],
+      tenant_permissions: []
+    };
+  }
 
   function newId() {
     if (window.crypto?.randomUUID) return window.crypto.randomUUID();
@@ -604,8 +623,8 @@
           <div class="login-card">
             <div class="brand">${brandMark()}<span>${esc(APP_NAME)}</span></div>
             <h2>Accedi al gestionale</h2>
-            <p>${connected ? "Usa le credenziali che ti ha assegnato l’amministratore." : "La configurazione del backend non è ancora inserita: puoi esplorare subito il prototipo."}</p>
-            ${connected ? renderLoginForm() : renderDemoLogin()}
+            <p>${connected ? "Accedi con l’email e la password del tuo account registrato." : "Il login reale non è ancora collegato a Supabase. Dopo la configurazione potranno accedere gli account già registrati."}</p>
+            ${connected ? renderLoginForm() : renderBackendSetup()}
           </div>
         </section>
       </main>`;
@@ -625,18 +644,13 @@
         <button class="button full" type="submit">Accedi</button>
       </form>
       <div class="info-banner"><span>🔒</span><span><strong>Accesso separato.</strong> Ogni inquilino visualizza esclusivamente le informazioni autorizzate per la propria abitazione.</span></div>
-      <button class="button ghost full" data-action="demo-admin">Apri comunque la demo locale</button>`;
+      `;
   }
 
-  function renderDemoLogin() {
+  function renderBackendSetup() {
     return `
-      <div class="info-banner"><span>◉</span><span><strong>Modalità demo locale.</strong> I dati inseriti ora restano solo su questo browser. Con Supabase avrai accessi reali, sincronizzazione e documenti privati.</span></div>
-      <div class="demo-actions">
-        <button class="button" data-action="demo-admin">Entra come admin</button>
-        <button class="button secondary" data-action="demo-tenant">Vedi area inquilino</button>
-      </div>
-      <div class="or">oppure</div>
-      <button class="button ghost full" data-action="show-architecture">Vedi come sarà collegata</button>`;
+      <div class="info-banner"><span>🔒</span><span><strong>Accessi reali non ancora attivi.</strong> Nel file <code>config.js</code> del repository GitHub vanno inseriti il Project URL e la Publishable key del progetto Supabase.</span></div>
+      <p class="row-muted">Non creare nuovi account: dopo il collegamento, gli utenti già presenti in Supabase accederanno con le loro credenziali attuali.</p>`;
   }
 
   function brandMark() {
@@ -1121,7 +1135,7 @@
       <main class="tenant-shell">
         <header class="tenant-topbar"><div class="brand brand-inverse">${brandMark()}<span>${esc(APP_NAME)}</span></div><div style="display:flex;align-items:center;gap:11px"><span style="font-size:.8rem;color:rgba(255,255,255,.76)">Ciao, ${esc(tenant?.display_name || "inquilino")}</span><button class="button secondary small" data-action="logout">Esci</button></div></header>
         <section class="tenant-main">
-          <div class="tenant-welcome"><div><p class="eyebrow">Area inquilino</p><h1>La tua abitazione, tutto in ordine.</h1><p>Consulta solo le informazioni che l’amministratore ha reso disponibili per te.</p></div>${isDemo() ? `<button class="button secondary" data-action="demo-admin">← Torna alla demo admin</button>` : ""}</div>
+          <div class="tenant-welcome"><div><p class="eyebrow">Area inquilino</p><h1>La tua abitazione, tutto in ordine.</h1><p>Consulta solo le informazioni che l’amministratore ha reso disponibili per te.</p></div></div>
           <div class="tenant-grid">
             <section class="rent-card"><p class="eyebrow">Canone ${esc(monthLabel(currentPayment?.period || isoMonth()))}</p><h2>${currentPayment?.status === "paid" ? "Pagamento registrato" : "Prossimo pagamento"}</h2><div class="rent-amount">${money(currentPayment?.amount_due || lease?.monthly_rent || 0)}</div><p>Scadenza ${dateLabel(currentPayment?.due_date || `${isoMonth()}-${String(lease?.due_day || 5).padStart(2, "0")}`)} · Stato: ${statusLabel(currentPayment?.status || "pending")}</p><div class="rent-actions">${permissions.allow_payment_upload ? `<button class="button" data-action="upload-payment" data-payment-id="${currentPayment?.id || ""}" data-property-id="${property.id}">⇧ Carica contabile</button>` : ""}${currentPayment?.receipt_name ? `<span class="button secondary">✓ ${esc(currentPayment.receipt_name)}</span>` : ""}</div></section>
             <section class="panel tenant-address"><p class="eyebrow">Immobile</p><h3>${esc(property.name)}</h3><p>${esc(property.address)}, ${esc(property.postal_code || "")} ${esc(property.city)}</p><dl><div><dt>Contratto</dt><dd>${lease ? dateLabel(lease.end_date) : "—"}</dd></div><div><dt>Canone</dt><dd>${money(lease?.monthly_rent || 0)}</dd></div></dl></section>
@@ -1261,18 +1275,8 @@
     const target = event.target.closest("[data-action]");
     if (!target) return;
     const action = target.dataset.action;
-    if (action === "demo-admin") {
-      state.mode = "admin";
-      state.profile = { id: "admin-demo", role: "admin", display_name: "Alberto Sicoli" };
-      state.activeView = "dashboard";
-      state.selectedTenantId = null;
-      render();
-      return;
-    }
-    if (action === "demo-tenant") {
-      state.mode = "tenant";
-      state.profile = getProfile(state.demoTenantId);
-      render();
+    if (action === "demo-admin" || action === "demo-tenant" || action === "reset-demo") {
+      toast("La modalità demo è disattivata. Accedi con un account Supabase registrato.", "error");
       return;
     }
     if (action === "logout") {
@@ -1659,8 +1663,12 @@
 
   async function hydrateSession(user) {
     state.loading = true;
-    const { data: profile, error } = await supabaseClient.from("profiles").select("*").eq("id", user.id).single();
+    const { data: profile, error } = await supabaseClient.from("profiles").select("*").eq("id", user.id).maybeSingle();
     if (error) throw error;
+    if (!profile) {
+      state.loading = false;
+      throw new Error("Account riconosciuto, ma senza profilo gestionale. L’amministratore deve sincronizzare gli utenti già registrati in Supabase.");
+    }
     state.profile = profile;
     if (!profile || !["admin", "tenant", "provider"].includes(profile.role)) {
       throw new Error("Il profilo non ha un ruolo valido. Contatta l’amministratore.");
