@@ -1,11 +1,5 @@
-/*
- * Duplica i valori del progetto Supabase qui dopo aver seguito il README.
- * Lasciando vuoti i campi l'app resta utilizzabile in modalità demo locale.
- */
 window.PROPERTY_MANAGER_CONFIG = {
-  supabaseUrl: "",
-  supabasePublishableKey: "",
-  // Compatibilità con progetti che mostrano ancora la vecchia chiave anon.
-  supabaseAnonKey: "",
+  supabaseUrl: "INCOLLA_QUI_IL_PROJECT_URL",
+  supabasePublishableKey: "INCOLLA_QUI_LA_PUBLISHABLE_KEY",
   appName: "Property Manager"
 };
