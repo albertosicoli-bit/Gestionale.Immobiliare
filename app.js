@@ -610,22 +610,20 @@
         <section class="login-visual" aria-label="Presentazione">
           <div class="brand brand-inverse">${brandMark()}<span>${esc(APP_NAME)}</span></div>
           <div class="login-copy">
-            <p class="eyebrow">Gestionale immobiliare privato</p>
-            <h1>Tieni insieme immobili, persone e numeri.</h1>
-            <p>Una scheda per ogni proprietà, con contratti, inquilini, utenze, mutui, pagamenti e interventi sempre ordinati.</p>
-            <div class="login-points">
-              <div class="login-point"><strong>Portale inquilino</strong><span>Canoni, bollette e caricamento della contabile.</span></div>
-              <div class="login-point"><strong>Conto economico</strong><span>Entrate, uscite e redditività per immobile.</span></div>
-              <div class="login-point"><strong>Permessi granulari</strong><span>Decidi tu cosa ciascun utente può vedere.</span></div>
+            <p class="eyebrow">Gestione immobiliare</p>
+            <h1>Immobili. Persone. Controllo.</h1>
+            <div class="login-features" aria-label="Funzioni principali">
+              <span>Immobili e contratti</span>
+              <span>Inquilini e pagamenti</span>
+              <span>Documenti e manutenzioni</span>
             </div>
           </div>
-          <div class="login-foot">PWA installabile · Dati protetti con ruoli e permessi</div>
+          <div class="login-foot">Tutto il tuo patrimonio immobiliare, in un unico spazio.</div>
         </section>
         <section class="login-panel">
           <div class="login-card">
-            <div class="brand">${brandMark()}<span>${esc(APP_NAME)}</span></div>
-            <h2>${recoveringPassword ? "Imposta una nuova password" : "Accedi al gestionale"}</h2>
-            <p>${recoveringPassword ? "Scegli una nuova password per il tuo account." : connected ? "Accedi con l’email e la password del tuo account registrato." : "Il login reale non è ancora collegato a Supabase. Dopo la configurazione potranno accedere gli account già registrati."}</p>
+            <h2>${recoveringPassword ? "Nuova password" : "Accedi"}</h2>
+            <p>${recoveringPassword ? "Scegli una nuova password per il tuo account." : connected ? "Entra nel tuo spazio di gestione." : "Accesso non ancora configurato."}</p>
             ${connected ? (recoveringPassword ? renderPasswordUpdateForm() : renderLoginForm()) : renderBackendSetup()}
           </div>
         </section>
@@ -640,13 +638,14 @@
           <input id="login-email" type="email" name="email" autocomplete="email" required placeholder="nome@email.it" />
         </div>
         <div class="field">
-          <label for="login-password">Password</label>
+          <div class="login-field-heading">
+            <label for="login-password">Password</label>
+            <button class="login-recovery-link" type="button" data-action="forgot-password">Password dimenticata?</button>
+          </div>
           <input id="login-password" type="password" name="password" autocomplete="current-password" required placeholder="••••••••" />
         </div>
         <button class="button full" type="submit">Accedi</button>
       </form>
-      <button class="button secondary full" type="button" data-action="forgot-password" style="margin-top:10px">Password dimenticata?</button>
-      <div class="info-banner"><span>🔒</span><span><strong>Accesso separato.</strong> Ogni inquilino visualizza esclusivamente le informazioni autorizzate per la propria abitazione.</span></div>
       `;
   }
 
