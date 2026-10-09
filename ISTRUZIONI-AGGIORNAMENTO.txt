@@ -1,0 +1,12 @@
+AGGIORNAMENTO GESTIONALE IMMOBILIARE
+
+Nel repository GitHub sostituire nella cartella principale:
+- app.js
+- styles.css
+- sw.js
+- README.md
+
+Non è incluso config.js: lascia intatta la configurazione Supabase già presente.
+
+Per abilitare la cancellazione degli account inquilino, eseguire una sola volta
+supabase/admin_delete_user.sql nel SQL Editor del progetto Supabase.

@@ -260,6 +260,24 @@ tr.clickable:hover td { background: #fbfcfd; }
 .contract-summary .section-head { margin-bottom: 12px; }
 .history-note { margin: 0 16px 12px; }
 .permission-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.role-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+.role-card { padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.role-card.role-admin { border-color: #c8d8e2; background: #f6fafc; }
+.role-title { display: flex; align-items: center; gap: 10px; }
+.role-title h3 { margin: 0; font-size: .9rem; }
+.role-title small { display: block; margin-top: 2px; color: var(--ink-soft); font-size: .68rem; }
+.role-mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px; color: var(--navy); background: #e7f0f5; font-size: .9rem; font-weight: 850; }
+.role-card p { margin: 12px 0 0; color: var(--ink-soft); font-size: .75rem; line-height: 1.55; }
+.settings-delete-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; padding: 0 20px; }
+.delete-group { min-width: 0; }
+.delete-group .section-head { margin: 0 0 10px; }
+.delete-group .section-head h3 { margin: 0; font-size: .9rem; }
+.delete-group .section-head p { margin: 4px 0 0; color: var(--ink-soft); font-size: .7rem; line-height: 1.4; }
+.delete-group .empty { min-height: 125px; border: 1px dashed var(--line); border-radius: 13px; }
+.delete-warning { margin: 16px 20px 20px; }
+.delete-ack { display: flex; align-items: flex-start; gap: 9px; margin-top: 14px; color: var(--ink); font-size: .78rem; line-height: 1.45; }
+.delete-ack input { margin: 3px 0 0; accent-color: var(--danger, #b73f3f); }
+.button:disabled { cursor: not-allowed; opacity: .48; transform: none; }
 .permission { display: flex; align-items: flex-start; gap: 9px; padding: 11px; border: 1px solid var(--line); border-radius: 12px; }
 .permission input { margin: 3px 0 0; accent-color: var(--teal); }
 .permission strong { display: block; font-size: .77rem; }
@@ -341,6 +359,8 @@ tr.clickable:hover td { background: #fbfcfd; }
   .mobile-nav button span { font-size: 1.05rem; }
   .mobile-nav button.active { color: var(--navy); background: #e9f1f5; }
   .page-grid, .split { grid-template-columns: 1fr; }
+  .role-grid { grid-template-columns: 1fr; }
+  .settings-delete-grid { grid-template-columns: 1fr; }
   .tenant-summary-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .tenant-grid { grid-template-columns: 1fr; }
 }

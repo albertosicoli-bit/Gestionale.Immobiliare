@@ -15,6 +15,7 @@ PWA per gestire un piccolo o medio portafoglio immobiliare: una scheda per ogni 
 - Rubrica di elettricisti, idraulici, muratori e altri fornitori, con intervento, attività svolta e costo.
 - Portale inquilino: visualizza solo la propria abitazione, carica la contabile e vede esclusivamente le sezioni abilitate dall’amministratore.
 - Scheda per singolo inquilino con contratti, date, canone, storico mensile dei pagamenti e bollette riaddebitate.
+- Ruoli Admin, Inquilino e Manutentore descritti nelle Impostazioni; cancellazioni amministrative protette da conferma digitata.
 - Permessi per ogni inquilino e immobile: documenti, utenze, manutenzioni e upload contabile.
 - Esportazione CSV e installazione PWA su computer o telefono.
 
@@ -68,6 +69,10 @@ npx supabase functions deploy admin-create-user
 ```
 
 La funzione usa le variabili protette già disponibili in Supabase (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`). Non inserire mai la service role key nel repository o in `config.js`.
+
+### 2.1 Abilita la cancellazione sicura degli account
+
+Per consentire all’Admin di cancellare un profilo inquilino anche da **Authentication**, esegui una volta il file `supabase/admin_delete_user.sql` nel SQL Editor del progetto. La funzione rifiuta la cancellazione di un account Admin e conserva lo storico dei canoni senza i dati personali dell’inquilino.
 
 ### 3. Inserisci la configurazione pubblica dell’app
 
@@ -134,4 +139,4 @@ Immobile
 - Alert sulle scadenze (canoni, mutui, contratti, bollette e manutenzioni).
 - PDF mensile per ciascun immobile.
 - Collegamento a contabilità/gestione fiscale.
-- Area manutentore con chiusura dell’intervento e caricamento fattura.
+- Area manutentore in sola lettura per gli interventi assegnati.

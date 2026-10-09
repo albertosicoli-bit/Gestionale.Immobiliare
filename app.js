@@ -1042,7 +1042,61 @@
   }
 
   function renderSettings() {
-    return `<div class="split"><section class="panel pad"><div class="section-head"><div><h2>Stato della piattaforma</h2><p>La PWA funziona già come prototipo locale; il backend abilita il lavoro condiviso.</p></div></div><div class="detail-list"><div class="detail-list-row"><span>Modalità attuale</span><strong>${isDemo() ? "Demo locale" : "Backend collegato"}</strong></div><div class="detail-list-row"><span>Autenticazione</span><strong>${supabaseClient ? "Configurata" : "Da configurare"}</strong></div><div class="detail-list-row"><span>Archivio documenti</span><strong>${supabaseClient ? "Storage privato" : "Solo metadati demo"}</strong></div><div class="detail-list-row"><span>Permessi</span><strong>Admin / Inquilino / Manutentore</strong></div></div><div class="callout" style="margin-top:18px">I dati della demo non sono condivisi e non devono essere usati per documenti reali. Dopo il collegamento a Supabase, le policy del database garantiscono che ogni inquilino acceda solo ai propri dati autorizzati.</div></section><section class="panel pad"><div class="section-head"><div><h2>Azioni</h2><p>Esportazione, ripristino e guida alla connessione.</p></div></div><div class="stack"><button class="button secondary full" data-action="export-csv">⇩ Esporta tutti i dati in CSV</button><button class="button secondary full" data-action="show-architecture">◌ Vedi architettura</button>${isDemo() ? `<button class="button danger full" data-action="reset-demo">Ripristina dati demo</button>` : `<button class="button danger full" data-action="logout">Esci dall’account</button>`}</div></section></div>`;
+    const tenants = state.data.profiles.filter((profile) => profile.role === "tenant");
+    return `<div class="stack">
+      <section class="panel pad"><div class="section-head"><div><h2>Ruoli e permessi</h2><p>Gli accessi sono determinati dal ruolo dell’account e dalle autorizzazioni associate.</p></div></div><div class="role-grid">
+        <article class="role-card role-admin"><div class="role-title"><span class="role-mark">A</span><div><h3>Admin</h3><small>Amministratore</small></div></div><p>Gestisce immobili, persone, contratti, canoni, utenze e impostazioni. Può eliminare inquilini o immobili dopo la verifica esplicita.</p></article>
+        <article class="role-card"><div class="role-title"><span class="role-mark">I</span><div><h3>Inquilino</h3><small>Accesso personale</small></div></div><p>Consulta solo gli immobili e le sezioni abilitate dall’amministratore; può inviare le proprie contabili. Non può modificare o cancellare i dati gestionali.</p></article>
+        <article class="role-card"><div class="role-title"><span class="role-mark">M</span><div><h3>Manutentore</h3><small>Interventi assegnati</small></div></div><p>Può consultare gli interventi che gli sono stati assegnati. Non accede a canoni, dati patrimoniali o funzioni di cancellazione.</p></article>
+      </div><div class="callout" style="margin-top:16px">Solo l’account con ruolo <strong>Admin</strong> può gestire e cancellare i dati. Le autorizzazioni del database verificano il ruolo anche quando l’utente opera dal sito.</div></section>
+      <section class="panel"><div class="panel-head"><div><h2>Eliminazione dati</h2><p>Ogni voce richiede una conferma digitata prima della cancellazione.</p></div></div><div class="settings-delete-grid">
+        <section class="delete-group"><div class="section-head"><div><h3>Inquilini</h3><p>Rimuove accesso e profilo; i pagamenti storici restano anonimizzati.</p></div></div>${deleteManagementTable(tenants, "tenant")}</section>
+        <section class="delete-group"><div class="section-head"><div><h3>Immobili</h3><p>Elimina anche contratti, canoni, utenze, documenti e interventi collegati.</p></div></div>${deleteManagementTable(state.data.properties, "property")}</section>
+      </div><div class="callout warning delete-warning">La cancellazione è permanente. Per gli immobili, i movimenti economici collegati restano nello storico senza l’associazione alla casa.</div></section>
+      <div class="split"><section class="panel pad"><div class="section-head"><div><h2>Stato della piattaforma</h2><p>Connessione e archivio dati.</p></div></div><div class="detail-list"><div class="detail-list-row"><span>Modalità attuale</span><strong>${isDemo() ? "Demo locale" : "Backend collegato"}</strong></div><div class="detail-list-row"><span>Autenticazione</span><strong>${supabaseClient ? "Configurata" : "Da configurare"}</strong></div><div class="detail-list-row"><span>Archivio documenti</span><strong>${supabaseClient ? "Storage privato" : "Solo metadati demo"}</strong></div><div class="detail-list-row"><span>Il tuo ruolo</span><strong>${esc(state.profile?.role === "admin" ? "Admin" : state.profile?.role || "Locale")}</strong></div></div><div class="callout" style="margin-top:18px">In modalità demo i dati restano in questo browser. Con Supabase, l’accesso ai dati condivisi è verificato dalle policy del database.</div></section><section class="panel pad"><div class="section-head"><div><h2>Azioni</h2><p>Esportazione e gestione della sessione.</p></div></div><div class="stack"><button class="button secondary full" data-action="export-csv">⇩ Esporta tutti i dati in CSV</button><button class="button secondary full" data-action="show-architecture">◌ Vedi architettura</button>${isDemo() ? `<button class="button danger full" data-action="reset-demo">Ripristina dati demo</button>` : `<button class="button danger full" data-action="logout">Esci dall’account</button>`}</div></section></div>
+    </div>`;
+  }
+
+  function deleteManagementTable(items, kind) {
+    if (!items.length) return empty(kind === "tenant" ? "♙" : "⌂", "Nessuna voce da gestire", "Non ci sono elementi disponibili per la cancellazione.");
+    const rows = kind === "tenant"
+      ? items.map((item) => `<tr><td><strong>${esc(item.display_name)}</strong><br><small>${esc(item.email || item.username || "")}</small></td><td><button class="button danger small" data-action="request-delete" data-delete-type="tenant" data-record-id="${esc(item.id)}">Elimina</button></td></tr>`).join("")
+      : items.map((item) => `<tr><td><strong>${esc(item.name)}</strong><br><small>${esc([item.address, item.city].filter(Boolean).join(", "))}</small></td><td><button class="button danger small" data-action="request-delete" data-delete-type="property" data-record-id="${esc(item.id)}">Elimina</button></td></tr>`).join("");
+    return `<div class="table-wrap"><table><thead><tr><th>${kind === "tenant" ? "Profilo" : "Immobile"}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  function openDeleteConfirmation(kind, id) {
+    if (state.profile?.role !== "admin") {
+      toast("Solo un amministratore può cancellare i dati.", "error");
+      return;
+    }
+    const item = kind === "tenant" ? getProfile(id) : getProperty(id);
+    if (!item) {
+      toast("Elemento non trovato. Aggiorna la pagina e riprova.", "error");
+      return;
+    }
+    const isTenant = kind === "tenant";
+    const title = isTenant ? item.display_name : item.name;
+    const details = isTenant
+      ? `L’account di ${title} e i relativi permessi saranno eliminati. I canoni storici resteranno senza il collegamento al profilo; un contratto condiviso resterà attivo per gli altri inquilini.`
+      : `L’immobile ${title} e i contratti, canoni, utenze, bollette, mutuo, documenti e interventi collegati saranno eliminati. I movimenti economici resteranno nello storico senza l’immobile.`;
+    const body = `<div class="stack"><div class="callout warning">${esc(details)}</div><form data-form="delete-record" data-delete-type="${kind}" data-record-id="${esc(item.id)}"><div class="field"><label for="delete-confirmation">Digita <strong>ELIMINA</strong> per confermare</label><input id="delete-confirmation" name="confirmation" type="text" autocomplete="off" required data-input="delete-confirmation" placeholder="ELIMINA" /></div><label class="delete-ack"><input type="checkbox" name="acknowledged" data-input="delete-confirmation-check" /><span>Ho verificato l’elemento e confermo la cancellazione permanente.</span></label><div class="dialog-foot" style="margin:18px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button danger" type="submit" data-delete-submit disabled>Conferma cancellazione</button></div></form></div>`;
+    openDialog(dialogTemplate(`Elimina ${isTenant ? "inquilino" : "immobile"}`, "Questa operazione non si può annullare.", body));
+  }
+
+  function updateDeleteConfirmation(form) {
+    if (!form) return;
+    const phrase = String(form.elements.confirmation?.value || "").trim();
+    const acknowledged = Boolean(form.elements.acknowledged?.checked);
+    const button = form.querySelector("[data-delete-submit]");
+    if (button) button.disabled = phrase !== "ELIMINA" || !acknowledged;
+  }
+
+  function renderProviderPortal() {
+    const provider = state.data.service_providers.find((item) => item.profile_id === state.sessionUser?.id);
+    const jobs = provider ? state.data.maintenance_jobs.filter((job) => job.provider_id === provider.id).sort((a, b) => String(b.scheduled_date).localeCompare(String(a.scheduled_date))) : [];
+    document.title = `${APP_NAME} · Area manutentore`;
+    app.innerHTML = `<main class="tenant-shell"><header class="tenant-topbar"><div class="brand brand-inverse">${brandMark()}<span>${esc(APP_NAME)}</span></div><button class="button secondary small" data-action="logout">Esci</button></header><section class="tenant-main"><div class="tenant-welcome"><div><p class="eyebrow">AREA MANUTENTORE</p><h1>${esc(state.profile?.display_name || "Manutentore")}</h1><p>Visualizzi solo gli interventi che ti sono stati assegnati.</p></div></div><section class="panel"><div class="panel-head"><div><h2>I miei interventi</h2><p>Dettagli operativi, data e stato.</p></div></div>${jobs.length ? `<div class="table-wrap"><table><thead><tr><th>Intervento</th><th>Categoria</th><th>Data</th><th>Stato</th></tr></thead><tbody>${jobs.map((job) => `<tr><td><strong>${esc(job.title)}</strong><br><small>${esc(job.notes || "")}</small></td><td>${esc(job.category || "—")}</td><td>${dateLabel(job.completed_date || job.scheduled_date)}</td><td>${badge(job.status)}</td></tr>`).join("")}</tbody></table></div>` : empty("⌁", "Nessun intervento assegnato", provider ? "Quando l’amministratore ti assegnerà un intervento, lo vedrai qui." : "L’amministratore deve collegare il tuo profilo alla scheda manutentore.")}</section></section></main>`;
   }
 
   function renderTenantPortal() {
@@ -1088,7 +1142,9 @@
   function render() {
     if (!state.mode) renderLogin();
     else if (state.mode === "tenant") renderTenantPortal();
-    else renderShell();
+    else if (state.mode === "provider") renderProviderPortal();
+    else if (state.mode === "admin") renderShell();
+    else renderLogin();
   }
 
   function toast(message, type = "success") {
@@ -1294,6 +1350,10 @@
       }
       return;
     }
+    if (action === "request-delete") {
+      openDeleteConfirmation(target.dataset.deleteType, target.dataset.recordId);
+      return;
+    }
     if (action === "upload-payment") return openForm("payment-proof", { paymentId: target.dataset.paymentId || "", propertyId: target.dataset.propertyId || "" });
     if (action === "open-payment") return openForm("payment-proof", { paymentId: target.dataset.paymentId || "", propertyId: state.data.rent_payments.find((item) => item.id === target.dataset.paymentId)?.property_id || "" });
     if (action === "edit-permissions") return openForm("permissions", { propertyId: target.dataset.propertyId, tenantId: target.dataset.tenantId });
@@ -1305,6 +1365,9 @@
   }
 
   function handleInput(event) {
+    if (event.target.dataset.input === "delete-confirmation" || event.target.dataset.input === "delete-confirmation-check") {
+      updateDeleteConfirmation(event.target.closest('form[data-form="delete-record"]'));
+    }
     if (event.target.dataset.input === "property-search") {
       state.propertySearch = event.target.value;
       renderView();
@@ -1324,6 +1387,13 @@
     const data = new FormData(form);
     const value = (name) => String(data.get(name) ?? "").trim();
     try {
+      if (type === "delete-record") {
+        if (value("confirmation") !== "ELIMINA" || data.get("acknowledged") !== "on") {
+          throw new Error("Completa la verifica prima di cancellare.");
+        }
+        await deleteManagedRecord(form.dataset.deleteType, form.dataset.recordId);
+        return;
+      }
       if (type === "login") {
         await login(value("email"), value("password"));
         return;
@@ -1469,6 +1539,115 @@
     finishMutation(status === "paid" ? "Bolletta segnata come pagata." : "Bolletta segnata come da pagare.");
   }
 
+  async function deleteManagedRecord(kind, id) {
+    if (state.profile?.role !== "admin") throw new Error("Operazione riservata all’amministratore.");
+    if (kind === "property") {
+      const property = getProperty(id);
+      if (!property) throw new Error("Immobile non trovato.");
+      let storedPaths = [];
+      let remoteDelete = false;
+      if (supabaseClient && state.sessionUser) {
+        const paymentPaths = state.data.rent_payments.filter((payment) => payment.property_id === id).map((payment) => payment.receipt_path);
+        const documentPaths = state.data.documents.filter((document) => document.property_id === id).map((document) => document.storage_path);
+        const billPaths = state.data.utility_bills.filter((bill) => bill.property_id === id).map((bill) => bill.document_path);
+        const folderPaths = await listStorageFolderPaths(`property/${id}`);
+        storedPaths = [...folderPaths, ...paymentPaths, ...documentPaths, ...billPaths];
+        const { error } = await supabaseClient.from("properties").delete().eq("id", id);
+        if (error) throw new Error(`Cancellazione immobile non riuscita: ${error.message}`);
+        remoteDelete = true;
+      }
+      removePropertyFromState(id);
+      let message = "Immobile e dati collegati cancellati.";
+      if (remoteDelete) {
+        try { await deleteStoragePaths(storedPaths); }
+        catch (error) { console.warn(error); message = "Immobile cancellato; alcuni file privati non sono stati rimossi dall’archivio."; }
+      }
+      finishMutation(message);
+      return;
+    }
+    if (kind === "tenant") {
+      const tenant = getProfile(id);
+      if (!tenant || tenant.role !== "tenant") throw new Error("Profilo inquilino non trovato.");
+      let storedPaths = [];
+      let remoteDelete = false;
+      if (supabaseClient && state.sessionUser) {
+        const receiptPaths = state.data.rent_payments.filter((payment) => payment.tenant_id === id).map((payment) => payment.receipt_path);
+        const folderPaths = await listStorageFolderPaths(`tenant/${id}`);
+        storedPaths = [...folderPaths, ...receiptPaths];
+        const { error } = await supabaseClient.rpc("admin_delete_user", { target_user_id: id });
+        if (error) throw new Error(`Cancellazione profilo non riuscita: ${error.message}. Verifica che la funzione admin_delete_user sia stata installata in Supabase.`);
+        remoteDelete = true;
+      }
+      removeTenantFromState(id);
+      let message = "Profilo inquilino cancellato con verifica completata.";
+      if (remoteDelete) {
+        try { await deleteStoragePaths(storedPaths); }
+        catch (error) { console.warn(error); message = "Profilo cancellato; alcune contabili private non sono state rimosse dall’archivio."; }
+      }
+      finishMutation(message);
+      return;
+    }
+    throw new Error("Tipo di cancellazione non riconosciuto.");
+  }
+
+  async function listStorageFolderPaths(folderPath) {
+    if (!supabaseClient || !state.sessionUser) return [];
+    const paths = [];
+    const pending = [folderPath];
+    while (pending.length) {
+      const folder = pending.pop();
+      for (let offset = 0; ; offset += 100) {
+        const { data, error } = await supabaseClient.storage.from("property-documents").list(folder, { limit: 100, offset });
+        if (error) throw new Error(`Verifica dei file prima della cancellazione non riuscita: ${error.message}`);
+        for (const entry of data || []) {
+          const path = `${folder}/${entry.name}`;
+          if (entry.id === null) pending.push(path);
+          else paths.push(path);
+        }
+        if (!data || data.length < 100) break;
+      }
+    }
+    return paths;
+  }
+
+  async function deleteStoragePaths(paths) {
+    if (!supabaseClient || !state.sessionUser) return;
+    const unique = [...new Set(paths.filter(Boolean))];
+    for (let index = 0; index < unique.length; index += 100) {
+      const { error } = await supabaseClient.storage.from("property-documents").remove(unique.slice(index, index + 100));
+      if (error) throw new Error(`Rimozione dei file non riuscita: ${error.message}. I dati gestionali non sono stati cancellati.`);
+    }
+  }
+
+  function removePropertyFromState(propertyId) {
+    const leaseIds = new Set(state.data.leases.filter((lease) => lease.property_id === propertyId).map((lease) => lease.id));
+    const utilityIds = new Set(state.data.utility_accounts.filter((utility) => utility.property_id === propertyId).map((utility) => utility.id));
+    state.data.properties = state.data.properties.filter((property) => property.id !== propertyId);
+    state.data.leases = state.data.leases.filter((lease) => lease.property_id !== propertyId);
+    state.data.rent_payments = state.data.rent_payments.filter((payment) => !leaseIds.has(payment.lease_id) && payment.property_id !== propertyId);
+    state.data.utility_accounts = state.data.utility_accounts.filter((utility) => utility.property_id !== propertyId);
+    state.data.utility_bills = state.data.utility_bills.filter((bill) => bill.property_id !== propertyId && !utilityIds.has(bill.utility_id));
+    state.data.mortgages = state.data.mortgages.filter((mortgage) => mortgage.property_id !== propertyId);
+    state.data.documents = state.data.documents.filter((document) => document.property_id !== propertyId);
+    state.data.maintenance_jobs = state.data.maintenance_jobs.filter((job) => job.property_id !== propertyId);
+    state.data.tenant_permissions = state.data.tenant_permissions.filter((permission) => permission.property_id !== propertyId);
+    state.data.financial_entries = state.data.financial_entries.map((entry) => entry.property_id === propertyId ? { ...entry, property_id: null } : entry);
+    if (state.selectedPropertyId === propertyId) state.selectedPropertyId = null;
+  }
+
+  function removeTenantFromState(tenantId) {
+    state.data.profiles = state.data.profiles.filter((profile) => profile.id !== tenantId);
+    state.data.tenant_permissions = state.data.tenant_permissions.filter((permission) => permission.tenant_id !== tenantId);
+    state.data.service_providers = state.data.service_providers.map((provider) => provider.profile_id === tenantId ? { ...provider, profile_id: null } : provider);
+    state.data.rent_payments = state.data.rent_payments.map((payment) => payment.tenant_id === tenantId ? { ...payment, tenant_id: null } : payment);
+    state.data.leases = state.data.leases.map((lease) => {
+      if (!(lease.tenant_ids || []).includes(tenantId)) return lease;
+      const tenantIds = lease.tenant_ids.filter((id) => id !== tenantId);
+      return { ...lease, tenant_ids: tenantIds, status: tenantIds.length ? lease.status : "ended" };
+    });
+    if (state.selectedTenantId === tenantId) state.selectedTenantId = null;
+  }
+
   async function login(email, password) {
     if (!supabaseClient) return;
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -1483,7 +1662,10 @@
     const { data: profile, error } = await supabaseClient.from("profiles").select("*").eq("id", user.id).single();
     if (error) throw error;
     state.profile = profile;
-    state.mode = profile.role === "tenant" ? "tenant" : "admin";
+    if (!profile || !["admin", "tenant", "provider"].includes(profile.role)) {
+      throw new Error("Il profilo non ha un ruolo valido. Contatta l’amministratore.");
+    }
+    state.mode = profile.role;
     await hydrateRemoteData();
     state.loading = false;
   }
@@ -1657,6 +1839,7 @@
     dialog.addEventListener("click", (event) => { if (event.target === dialog) closeDialog(); });
     document.addEventListener("click", handleClick);
     document.addEventListener("input", handleInput);
+    document.addEventListener("change", handleInput);
     document.addEventListener("submit", handleSubmit);
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => undefined);
     if (supabaseClient) {
