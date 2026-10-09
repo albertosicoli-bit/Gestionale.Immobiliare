@@ -1,0 +1,7 @@
+AGGIORNAMENTO CACHE LOGIN
+
+Carica questo file sw.js nella root del repository Gestionale.Immobiliare, sostituendo quello esistente, e conferma con Commit changes sul branch main.
+
+La versione aggiornata invalida la vecchia cache della PWA, così il browser scarica il nuovo app.js e config.js.
+
+Dopo il commit attendi un paio di minuti, riapri il sito e aggiorna la pagina. Se visualizzi ancora la schermata vecchia, aggiorna una seconda volta.
