@@ -34,6 +34,7 @@
     sessionUser: null,
     profile: null,
     loading: false,
+    passwordRecovery: new URLSearchParams(window.location.hash.slice(1)).get("type") === "recovery",
     // I dati remoti vengono caricati solo dopo un accesso Supabase valido.
     data: emptyData()
   };
@@ -602,6 +603,7 @@
 
   function renderLogin() {
     const connected = Boolean(supabaseClient);
+    const recoveringPassword = state.passwordRecovery;
     document.title = `${APP_NAME} · Accesso`;
     app.innerHTML = `
       <main class="login-shell">
@@ -622,9 +624,9 @@
         <section class="login-panel">
           <div class="login-card">
             <div class="brand">${brandMark()}<span>${esc(APP_NAME)}</span></div>
-            <h2>Accedi al gestionale</h2>
-            <p>${connected ? "Accedi con l’email e la password del tuo account registrato." : "Il login reale non è ancora collegato a Supabase. Dopo la configurazione potranno accedere gli account già registrati."}</p>
-            ${connected ? renderLoginForm() : renderBackendSetup()}
+            <h2>${recoveringPassword ? "Imposta una nuova password" : "Accedi al gestionale"}</h2>
+            <p>${recoveringPassword ? "Scegli una nuova password per il tuo account." : connected ? "Accedi con l’email e la password del tuo account registrato." : "Il login reale non è ancora collegato a Supabase. Dopo la configurazione potranno accedere gli account già registrati."}</p>
+            ${connected ? (recoveringPassword ? renderPasswordUpdateForm() : renderLoginForm()) : renderBackendSetup()}
           </div>
         </section>
       </main>`;
@@ -643,8 +645,25 @@
         </div>
         <button class="button full" type="submit">Accedi</button>
       </form>
+      <button class="button secondary full" type="button" data-action="forgot-password" style="margin-top:10px">Password dimenticata?</button>
       <div class="info-banner"><span>🔒</span><span><strong>Accesso separato.</strong> Ogni inquilino visualizza esclusivamente le informazioni autorizzate per la propria abitazione.</span></div>
       `;
+  }
+
+  function renderPasswordUpdateForm() {
+    return `
+      <form data-form="password-recovery" class="stack">
+        <div class="field">
+          <label for="new-password">Nuova password</label>
+          <input id="new-password" type="password" name="password" autocomplete="new-password" required minlength="8" placeholder="Almeno 8 caratteri" />
+        </div>
+        <div class="field">
+          <label for="confirm-new-password">Conferma nuova password</label>
+          <input id="confirm-new-password" type="password" name="password_confirmation" autocomplete="new-password" required minlength="8" placeholder="Ripeti la password" />
+        </div>
+        <button class="button full" type="submit">Salva nuova password</button>
+      </form>
+    `;
   }
 
   function renderBackendSetup() {
@@ -1154,7 +1173,8 @@
   }
 
   function render() {
-    if (!state.mode) renderLogin();
+    if (state.passwordRecovery) renderLogin();
+    else if (!state.mode) renderLogin();
     else if (state.mode === "tenant") renderTenantPortal();
     else if (state.mode === "provider") renderProviderPortal();
     else if (state.mode === "admin") renderShell();
@@ -1275,6 +1295,10 @@
     const target = event.target.closest("[data-action]");
     if (!target) return;
     const action = target.dataset.action;
+    if (action === "forgot-password") {
+      await requestPasswordReset();
+      return;
+    }
     if (action === "demo-admin" || action === "demo-tenant" || action === "reset-demo") {
       toast("La modalità demo è disattivata. Accedi con un account Supabase registrato.", "error");
       return;
@@ -1400,6 +1424,12 @@
       }
       if (type === "login") {
         await login(value("email"), value("password"));
+        return;
+      }
+      if (type === "password-recovery") {
+        if (value("password").length < 8) throw new Error("La password deve contenere almeno 8 caratteri.");
+        if (value("password") !== value("password_confirmation")) throw new Error("Le due password non coincidono.");
+        await updateRecoveredPassword(value("password"));
         return;
       }
       if (type === "property") {
@@ -1661,6 +1691,42 @@
     render();
   }
 
+  async function requestPasswordReset() {
+    const email = String(document.querySelector('#login-email')?.value || "").trim();
+    if (!email) {
+      toast("Inserisci prima la tua email nel campo qui sopra.", "error");
+      document.querySelector('#login-email')?.focus();
+      return;
+    }
+    if (!supabaseClient) {
+      toast("Il collegamento a Supabase non è disponibile.", "error");
+      return;
+    }
+    try {
+      const redirectTo = `${window.location.origin}${window.location.pathname}`;
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) throw error;
+      toast("Se l’email è registrata, riceverai un messaggio con il link per reimpostare la password.");
+    } catch (error) {
+      console.error("Richiesta reset password non riuscita", error);
+      toast(error.message || "Non è stato possibile inviare il link di reset.", "error");
+    }
+  }
+
+  async function updateRecoveredPassword(password) {
+    if (!supabaseClient) throw new Error("Il collegamento a Supabase non è disponibile.");
+    const { error } = await supabaseClient.auth.updateUser({ password });
+    if (error) throw error;
+    await supabaseClient.auth.signOut();
+    state.passwordRecovery = false;
+    state.sessionUser = null;
+    state.profile = null;
+    state.mode = null;
+    window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+    render();
+    toast("Password aggiornata. Ora accedi con la nuova password.");
+  }
+
   async function hydrateSession(user) {
     state.loading = true;
     const { data: profile, error } = await supabaseClient.from("profiles").select("*").eq("id", user.id).maybeSingle();
@@ -1851,9 +1917,16 @@
     document.addEventListener("submit", handleSubmit);
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => undefined);
     if (supabaseClient) {
+      supabaseClient.auth.onAuthStateChange((event) => {
+        if (event === "PASSWORD_RECOVERY") {
+          state.passwordRecovery = true;
+          window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+          render();
+        }
+      });
       try {
         const { data } = await supabaseClient.auth.getSession();
-        if (data.session?.user) {
+        if (data.session?.user && !state.passwordRecovery) {
           state.sessionUser = data.session.user;
           await hydrateSession(data.session.user);
         }
@@ -1862,6 +1935,7 @@
         toast("Non è stato possibile recuperare la sessione remota.", "error");
       }
     }
+    if (window.location.hash.includes("type=recovery")) state.passwordRecovery = true;
     render();
   }
 
