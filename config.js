@@ -1,5 +1,5 @@
 window.PROPERTY_MANAGER_CONFIG = {
-  supabaseUrl: "INCOLLA_QUI_IL_PROJECT_URL",
-  supabasePublishableKey: "INCOLLA_QUI_LA_PUBLISHABLE_KEY",
+  supabaseUrl: "https://IL-TUO-PROGETTO.supabase.co",
+  supabasePublishableKey: "sb_publishable_LA-TUA-CHIAVE",
   appName: "Property Manager"
 };
