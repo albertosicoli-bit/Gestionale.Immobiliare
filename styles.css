@@ -183,7 +183,7 @@ button.property-title:hover strong { color: var(--teal); }
 .badge { display: inline-flex; width: fit-content; align-items: center; gap: 5px; padding: 5px 8px; border-radius: 999px; font-size: .69rem; font-weight: 800; white-space: nowrap; }
 .badge::before { width: 6px; height: 6px; border-radius: 50%; content: ""; background: currentColor; }
 .badge.rented, .badge.paid, .badge.done, .badge.active { color: #087468; background: var(--teal-soft); }
-.badge.vacant, .badge.pending, .badge.scheduled { color: #ad7412; background: var(--gold-soft); }
+.badge.vacant, .badge.pending, .badge.scheduled, .badge.review, .badge.unmatched { color: #ad7412; background: var(--gold-soft); }
 .badge.personal, .badge.info, .badge.partial { color: #5d4ab7; background: #efedff; }
 .badge.late, .badge.overdue, .badge.cancelled { color: #be4141; background: var(--danger-soft); }
 .badge.missing { color: #a53e3e; background: #fff0ef; }

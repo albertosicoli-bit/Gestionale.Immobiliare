@@ -55,7 +55,9 @@
       documents: [],
       service_providers: [],
       maintenance_jobs: [],
-      tenant_permissions: []
+      tenant_permissions: [],
+      tenant_bank_sender_aliases: [],
+      bank_transfer_events: []
     };
   }
 
@@ -453,6 +455,8 @@
       draft: "Bozza",
       pending: "Da pagare",
       paid: "Pagato",
+      review: "Da verificare",
+      unmatched: "Da associare",
       partial: "Parziale",
       late: "In ritardo",
       missing: "Non registrato",
@@ -1137,6 +1141,7 @@
     const tenants = [...new Map(state.data.profiles.filter((profile) => profile.role === "tenant").map((profile) => [profile.id, profile])).values()];
     return `<div class="stack">
       ${renderExcelImportCard()}
+      ${renderBankTransferCard(tenants)}
       <section class="panel pad"><div class="section-head"><div><h2>Ruoli e permessi</h2><p>Gli accessi sono determinati dal ruolo dell’account e dalle autorizzazioni associate.</p></div></div><div class="role-grid">
         <article class="role-card role-admin"><div class="role-title"><span class="role-mark">A</span><div><h3>Admin</h3><small>Amministratore</small></div></div><p>Gestisce immobili, persone, contratti, canoni, utenze e impostazioni. Può eliminare inquilini o immobili dopo la verifica esplicita.</p></article>
         <article class="role-card"><div class="role-title"><span class="role-mark">I</span><div><h3>Inquilino</h3><small>Accesso personale</small></div></div><p>Consulta solo gli immobili e le sezioni abilitate dall’amministratore; può inviare le proprie contabili. Non può modificare o cancellare i dati gestionali.</p></article>
@@ -1154,6 +1159,16 @@
     if (state.profile?.role !== "admin") return "";
     const connected = Boolean(supabaseClient && state.sessionUser);
     return `<section class="panel pad"><div class="section-head"><div><h2>Carica dati da Excel</h2><p>Importa immobili, utenze e bollette dal file di verifica, dopo aver marcato le righe da caricare.</p></div><button class="button" data-action="open-excel-import" ${connected ? "" : "disabled"}>Scegli file Excel</button></div><p class="small-note">${connected ? "L’importazione mostra prima un riepilogo, ignora i duplicati e salva nel database Supabase." : "Per importare serve una sessione Admin collegata a Supabase."} Contratti, inquilini, spese aggregate e proposte di quote non vengono creati automaticamente.</p></section>`;
+  }
+
+  function renderBankTransferCard(tenants) {
+    if (state.profile?.role !== "admin") return "";
+    const aliases = [...(state.data.tenant_bank_sender_aliases || [])].sort((a, b) => a.sender_name.localeCompare(b.sender_name, "it"));
+    const events = [...(state.data.bank_transfer_events || [])].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 12);
+    const aliasRows = aliases.length ? `<div class="table-wrap"><table><thead><tr><th>Ordinante email</th><th>Inquilino abbinato</th><th></th></tr></thead><tbody>${aliases.map((alias) => `<tr><td>${esc(alias.sender_name)}</td><td>${esc(getProfile(alias.tenant_id)?.display_name || "Profilo non trovato")}</td><td><button class="button danger small" type="button" data-action="remove-bank-sender-alias" data-alias-id="${esc(alias.id)}">Rimuovi</button></td></tr>`).join("")}</tbody></table></div>` : `<p class="row-muted">Non hai ancora associato ordinanti.</p>`;
+    const eventRows = events.length ? `<div class="table-wrap"><table><thead><tr><th>Accredito</th><th>Ordinante</th><th>Ricevuto</th><th>Canone atteso</th><th>Esito</th></tr></thead><tbody>${events.map((item) => `<tr><td>${dateLabel(item.credited_on)}</td><td>${esc(getProfile(item.tenant_id)?.display_name || item.sender_name)}</td><td class="number">${money(item.amount)}</td><td class="number">${item.expected_amount == null ? "—" : money(item.expected_amount)}</td><td>${badge(item.status === "matched" ? "paid" : item.status)}${item.review_reason ? `<br><small>${esc(item.review_reason)}</small>` : ""}</td></tr>`).join("")}</tbody></table></div>` : `<p class="row-muted">Le notifiche ricevute compariranno qui.</p>`;
+    const tenantOptions = tenants.map((tenant) => [tenant.id, `${tenant.display_name}${tenant.email ? ` · ${tenant.email}` : ""}`]);
+    return `<section class="panel pad"><div class="section-head"><div><h2>Bonifici in ingresso da Gmail</h2><p>Associa il nome “Ordinante” della notifica Fineco all’inquilino. L’importo identico al canone aperto aggiorna il pagamento; importi diversi restano gialli da verificare.</p></div></div><form data-form="bank-sender-alias" class="form-grid"><div class="field"><label for="bank-alias-tenant">Inquilino</label><select id="bank-alias-tenant" name="tenant_id" required><option value="">Seleziona inquilino</option>${tenantOptions.map(([id, label]) => `<option value="${esc(id)}">${esc(label)}</option>`).join("")}</select></div><div class="field"><label for="bank-alias-name">Ordinante come appare nell’email</label><input id="bank-alias-name" name="sender_name" required placeholder="es. Roberto Antonella" /></div><div class="field" style="align-self:end"><button class="button" type="submit" ${supabaseClient && state.sessionUser ? "" : "disabled"}>Salva abbinamento</button></div></form><p class="small-note">Gmail controlla ogni 5 minuti solo le notifiche Fineco con oggetto “bonifico in ingresso” e invia al backend ordinante, data e importo. Il testo completo della mail non viene salvato.</p><div class="section-head" style="margin-top:20px"><div><h3>Abbinamenti attivi</h3></div></div>${aliasRows}<div class="section-head" style="margin-top:22px"><div><h3>Bonifici ricevuti</h3><p>Verde = canone aggiornato; giallo = importo o abbinamento da verificare.</p></div></div>${eventRows}</section>`;
   }
 
   function importText(value) {
@@ -1912,6 +1927,15 @@
     }
     if (action === "commit-excel-import") return commitExcelImport();
     if (action === "recheck-excel-import") return recheckExcelImport();
+    if (action === "remove-bank-sender-alias") {
+      if (state.profile?.role !== "admin") return toast("Solo un Admin può modificare gli abbinamenti.", "error");
+      const { error } = await supabaseClient.from("tenant_bank_sender_aliases").delete().eq("id", target.dataset.aliasId);
+      if (error) return toast("Non è stato possibile rimuovere l’abbinamento: " + error.message, "error");
+      await hydrateRemoteData();
+      renderShell();
+      toast("Abbinamento rimosso.");
+      return;
+    }
     if (action === "forgot-password") {
       await requestPasswordReset();
       return;
@@ -2059,6 +2083,21 @@
           throw new Error("Completa la verifica prima di cancellare.");
         }
         await deleteManagedRecord(form.dataset.deleteType, form.dataset.recordId);
+        return;
+      }
+      if (type === "bank-sender-alias") {
+        if (state.profile?.role !== "admin" || !supabaseClient || !state.sessionUser) throw new Error("Serve una sessione Admin collegata a Supabase.");
+        const tenantId = value("tenant_id");
+        const senderName = value("sender_name").replace(/\s+/g, " ");
+        if (!tenantId || !senderName) throw new Error("Seleziona l’inquilino e inserisci il nome dell’ordinante.");
+        const senderKey = importText(senderName);
+        const duplicate = state.data.tenant_bank_sender_aliases.find((alias) => alias.sender_key === senderKey);
+        if (duplicate) throw new Error(`Questo ordinante è già associato a ${getProfile(duplicate.tenant_id)?.display_name || "un inquilino"}.`);
+        const { error } = await supabaseClient.from("tenant_bank_sender_aliases").insert({ tenant_id: tenantId, sender_name: senderName, sender_key: senderKey });
+        if (error) throw new Error(error.code === "23505" ? "Questo ordinante è già stato associato." : error.message);
+        await hydrateRemoteData();
+        renderShell();
+        toast("Ordinante associato all’inquilino.");
         return;
       }
       if (type === "login") {
@@ -2547,7 +2586,7 @@
   async function hydrateRemoteData() {
     if (!supabaseClient || !state.sessionUser) return;
     const tables = [
-      "properties", "property_private_details", "profiles", "leases", "lease_tenants", "rent_payments", "utility_accounts", "utility_bills", "mortgages", "financial_entries", "documents", "service_providers", "maintenance_jobs", "property_tenant_permissions"
+      "properties", "property_private_details", "profiles", "leases", "lease_tenants", "rent_payments", "utility_accounts", "utility_bills", "mortgages", "financial_entries", "documents", "service_providers", "maintenance_jobs", "property_tenant_permissions", "tenant_bank_sender_aliases", "bank_transfer_events"
     ];
     const results = await Promise.all(tables.map(async (table) => {
       const { data, error } = await supabaseClient.from(table).select("*");
@@ -2580,7 +2619,9 @@
       documents: remote.documents,
       service_providers: remote.service_providers,
       maintenance_jobs: remote.maintenance_jobs,
-      tenant_permissions: remote.property_tenant_permissions
+      tenant_permissions: remote.property_tenant_permissions,
+      tenant_bank_sender_aliases: remote.tenant_bank_sender_aliases,
+      bank_transfer_events: remote.bank_transfer_events
     };
   }
 

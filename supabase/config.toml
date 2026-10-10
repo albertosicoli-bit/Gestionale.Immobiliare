@@ -1,0 +1,2 @@
+[functions.bank-transfer-notification]
+verify_jwt = false
