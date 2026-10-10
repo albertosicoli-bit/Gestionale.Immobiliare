@@ -1,4 +1,4 @@
-const CACHE_NAME = "property-manager-v7";
+const CACHE_NAME = "property-manager-v8";
 const APP_SHELL = [
   "./",
   "./index.html",

@@ -505,7 +505,7 @@
         show_documents: false,
         show_utilities: false,
         show_maintenance: false,
-        allow_payment_upload: true,
+        allow_payment_upload: false,
         allow_utility_upload: false
       }
     );
@@ -517,6 +517,21 @@
 
   function getProvider(id) {
     return state.data.service_providers.find((provider) => provider.id === id);
+  }
+
+  function normalizedKey(value) {
+    return String(value ?? "").normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("it-IT");
+  }
+
+  function assertNoDuplicate(items, candidate, isDuplicate, message) {
+    if (items.some((item) => item.id !== candidate.id && isDuplicate(item, candidate))) {
+      throw new Error(message);
+    }
+  }
+
+  function deleteButton(kind, id, label = "Elimina") {
+    if (state.profile?.role !== "admin" || !id) return "";
+    return `<button class="button danger small" type="button" data-action="request-delete" data-delete-type="${esc(kind)}" data-record-id="${esc(id)}">${esc(label)}</button>`;
   }
 
   function propertyRent(propertyId) {
@@ -826,7 +841,7 @@
       <span class="tenant-col">${badge(property.status)}</span>
       <span class="rent-col row-number">${property.status === "rented" ? money(propertyRent(property.id)) : "—"}</span>
       <span class="row-muted">${tenants.length ? esc(tenants.map((tenant) => tenant.display_name.split(" ")[0]).join(", ")) : "Nessun inquilino"}</span>
-      <button class="row-action" aria-label="Apri ${esc(property.name)}" data-action="open-property" data-property-id="${property.id}">›</button>
+      <span class="row-actions"><button class="row-action" aria-label="Apri ${esc(property.name)}" data-action="open-property" data-property-id="${property.id}">›</button>${deleteButton("property", property.id)}</span>
     </article>`;
   }
 
@@ -838,7 +853,7 @@
       <span class="tenant-col">${badge(payment.status)}</span>
       <span class="rent-col row-number">${money(payment.amount_due)}</span>
       <span class="row-muted">Scad. ${dateLabel(payment.due_date, { day: "2-digit", month: "short" })}</span>
-      <button class="row-action" data-action="open-payment" data-payment-id="${payment.id}" aria-label="Gestisci pagamento">›</button>
+      <span class="row-actions"><button class="row-action" data-action="open-payment" data-payment-id="${payment.id}" aria-label="Gestisci pagamento">›</button>${deleteButton("payment", payment.id)}</span>
     </article>`;
   }
 
@@ -847,7 +862,7 @@
     const date = new Date(`${job.scheduled_date}T12:00:00`);
     const day = Number.isNaN(date.valueOf()) ? "—" : date.getDate();
     const month = Number.isNaN(date.valueOf()) ? "" : new Intl.DateTimeFormat("it-IT", { month: "short" }).format(date);
-    return `<article class="task-row"><div class="task-date"><strong>${day}</strong>${esc(month)}</div><div class="task-copy"><strong>${esc(job.title)}</strong><span>${esc(property?.name || "Immobile")} · ${esc(getProvider(job.provider_id)?.display_name || "Fornitore non assegnato")}</span></div>${badge(job.status)}</article>`;
+    return `<article class="task-row"><div class="task-date"><strong>${day}</strong>${esc(month)}</div><div class="task-copy"><strong>${esc(job.title)}</strong><span>${esc(property?.name || "Immobile")} · ${esc(getProvider(job.provider_id)?.display_name || "Fornitore non assegnato")}</span></div>${badge(job.status)}${deleteButton("maintenance", job.id)}</article>`;
   }
 
   function renderProperties() {
@@ -877,7 +892,7 @@
     return `<article class="property-card">
       <div class="card-top"><div><h2 class="card-property-title">${esc(property.name)}</h2><p class="card-address">${esc(property.address)}, ${esc(property.city)}</p></div>${badge(property.status)}</div>
       <div class="card-metrics"><div class="card-metric"><span>Canone mensile</span><strong>${property.status === "rented" ? money(propertyRent(property.id)) : "—"}</strong></div><div class="card-metric"><span>Costi del mese</span><strong>${money(cost)}</strong></div></div>
-      <div class="card-bottom"><div class="avatar-stack">${tenants.length ? tenants.map((tenant) => `<span class="avatar" title="${esc(tenant.display_name)}">${esc(initials(tenant.display_name))}</span>`).join("") : `<span class="row-muted">Nessun inquilino</span>`}</div><button class="button secondary small" data-action="open-property" data-property-id="${property.id}">Apri scheda</button></div>
+      <div class="card-bottom"><div class="avatar-stack">${tenants.length ? tenants.map((tenant) => `<span class="avatar" title="${esc(tenant.display_name)}">${esc(initials(tenant.display_name))}</span>`).join("") : `<span class="row-muted">Nessun inquilino</span>`}</div><div class="panel-actions"><button class="button secondary small" data-action="open-property" data-property-id="${property.id}">Apri scheda</button>${deleteButton("property", property.id)}</div></div>
     </article>`;
   }
 
@@ -893,7 +908,7 @@
     return `
       <section class="property-hero">
         <div><p class="eyebrow">${esc(property.type || "Immobile")}</p><h2>${esc(property.name)}</h2><p>${esc(property.address)}, ${esc(property.postal_code || "")} ${esc(property.city)}</p><div class="property-hero-meta">${badge(property.status)}<span class="hero-pill">Valore stimato ${money(property.estimated_value)}</span><span class="hero-pill">${getTenantsForProperty(property.id).length} inquilino/i</span></div></div>
-        <button class="button secondary" data-action="navigate" data-view="properties">← Immobili</button>
+        <div class="panel-actions"><button class="button secondary" data-action="navigate" data-view="properties">← Immobili</button>${deleteButton("property", property.id)}</div>
       </section>
       <nav class="property-tabs" aria-label="Sezioni della scheda immobile">${tabs.map(([id, label]) => `<button class="property-tab ${state.propertyTab === id ? "active" : ""}" data-action="property-tab" data-tab="${id}">${label}</button>`).join("")}</nav>
       ${renderPropertyTab(property)}`;
@@ -941,7 +956,7 @@
 
   function leaseCard(lease) {
     const tenants = (lease.tenant_ids || []).map(getProfile).filter(Boolean);
-    return `<div style="padding:0 20px 20px"><div class="panel pad" style="box-shadow:none;border-radius:14px"><div class="section-head"><div><h2>${esc(lease.contract_reference || "Contratto di locazione")}</h2><p>${dateLabel(lease.start_date)} — ${dateLabel(lease.end_date)} · Scadenza canone giorno ${esc(lease.due_day)}</p></div>${badge(lease.status === "active" ? "active" : lease.status)}</div><div class="detail-grid"><article class="data-tile"><span>Canone mensile</span><strong>${money(lease.monthly_rent)}</strong></article><article class="data-tile"><span>Deposito</span><strong>${money(lease.deposit)}</strong></article><article class="data-tile"><span>Inquilini</span><strong>${tenants.length}</strong></article></div><div class="detail-list" style="margin-top:13px">${tenants.map((tenant) => `<div class="detail-list-row"><span><strong style="text-align:left">${esc(tenant.display_name)}</strong><br><small>${esc(tenant.email || tenant.username || "")}</small></span><span>${esc(tenant.phone || "—")}</span></div>`).join("")}</div></div></div>`;
+    return `<div style="padding:0 20px 20px"><div class="panel pad" style="box-shadow:none;border-radius:14px"><div class="section-head"><div><h2>${esc(lease.contract_reference || "Contratto di locazione")}</h2><p>${dateLabel(lease.start_date)} — ${dateLabel(lease.end_date)} · Scadenza canone giorno ${esc(lease.due_day)}</p></div><div class="panel-actions">${badge(lease.status === "active" ? "active" : lease.status)}${deleteButton("lease", lease.id)}</div></div><div class="detail-grid"><article class="data-tile"><span>Canone mensile</span><strong>${money(lease.monthly_rent)}</strong></article><article class="data-tile"><span>Deposito</span><strong>${money(lease.deposit)}</strong></article><article class="data-tile"><span>Inquilini</span><strong>${tenants.length}</strong></article></div><div class="detail-list" style="margin-top:13px">${tenants.map((tenant) => `<div class="detail-list-row"><span><strong style="text-align:left">${esc(tenant.display_name)}</strong><br><small>${esc(tenant.email || tenant.username || "")}</small></span><span>${esc(tenant.phone || "—")}</span></div>`).join("")}</div></div></div>`;
   }
 
   function renderPropertyFinance(property) {
@@ -954,12 +969,12 @@
   function renderPropertyUtilities(property) {
     const utilities = state.data.utility_accounts.filter((utility) => utility.property_id === property.id);
     const bills = state.data.utility_bills.filter((bill) => bill.property_id === property.id).sort((a, b) => String(b.period).localeCompare(String(a.period)));
-    return `<div class="stack"><section class="panel"><div class="panel-head"><div><h2>Utenze</h2><p>Indica chi è intestatario e se il costo viene riaddebitato agli inquilini.</p></div><button class="button small" data-action="add-utility" data-property-id="${property.id}">+ Utenza o bolletta</button></div>${utilities.length ? `<div class="table-wrap"><table><thead><tr><th>Utenza</th><th>Fornitore</th><th>Intestata a</th><th>Riaddebito</th></tr></thead><tbody>${utilities.map((utility) => `<tr><td><strong>${esc(utility.kind)}</strong><br><small>${esc(utility.contract_code || "")}</small></td><td>${esc(utility.provider || "—")}</td><td>${utility.holder === "owner" ? "Proprietario" : "Inquilino"}</td><td>${utility.recharged_to_tenant ? "Sì" : "No"}</td></tr>`).join("")}</tbody></table></div>` : empty("⚡", "Nessuna utenza censita", "Aggiungi luce, gas, acqua, condominio o altri servizi.")}</section><section class="panel"><div class="panel-head"><div><h2>Bollettini e scadenze</h2><p>Documenta le fatture anche quando il contratto non è intestato all’inquilino.</p></div></div>${bills.length ? `<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Utenza</th><th>Scadenza</th><th>Importo</th><th>Stato</th></tr></thead><tbody>${bills.map((bill) => `<tr><td>${esc(monthLabel(bill.period))}</td><td>${esc(state.data.utility_accounts.find((utility) => utility.id === bill.utility_id)?.kind || "Utenza")}</td><td>${dateLabel(bill.due_date)}</td><td class="number">${money(bill.amount)}</td><td>${badge(bill.status)}</td></tr>`).join("")}</tbody></table></div>` : empty("▤", "Nessuna bolletta", "Le nuove bollette saranno archiviate qui.")}</section></div>`;
+    return `<div class="stack"><section class="panel"><div class="panel-head"><div><h2>Utenze</h2><p>Indica chi è intestatario e se il costo viene riaddebitato agli inquilini.</p></div><button class="button small" data-action="add-utility" data-property-id="${property.id}">+ Utenza o bolletta</button></div>${utilities.length ? `<div class="table-wrap"><table><thead><tr><th>Utenza</th><th>Fornitore</th><th>Intestata a</th><th>Riaddebito</th><th>Azioni</th></tr></thead><tbody>${utilities.map((utility) => `<tr><td><strong>${esc(utility.kind)}</strong><br><small>${esc(utility.contract_code || "")}</small></td><td>${esc(utility.provider || "—")}</td><td>${utility.holder === "owner" ? "Proprietario" : "Inquilino"}</td><td>${utility.recharged_to_tenant ? "Sì" : "No"}</td><td>${deleteButton("utility", utility.id)}</td></tr>`).join("")}</tbody></table></div>` : empty("⚡", "Nessuna utenza censita", "Aggiungi luce, gas, acqua, condominio o altri servizi.")}</section><section class="panel"><div class="panel-head"><div><h2>Bollettini e scadenze</h2><p>Documenta le fatture anche quando il contratto non è intestato all’inquilino.</p></div></div>${bills.length ? `<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Utenza</th><th>Scadenza</th><th>Importo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${bills.map((bill) => `<tr><td>${esc(monthLabel(bill.period))}</td><td>${esc(state.data.utility_accounts.find((utility) => utility.id === bill.utility_id)?.kind || "Utenza")}</td><td>${dateLabel(bill.due_date)}</td><td class="number">${money(bill.amount)}</td><td>${badge(bill.status)}</td><td>${deleteButton("utility-bill", bill.id)}</td></tr>`).join("")}</tbody></table></div>` : empty("▤", "Nessuna bolletta", "Le nuove bollette saranno archiviate qui.")}</section></div>`;
   }
 
   function renderPropertyDocuments(property) {
     const docs = state.data.documents.filter((document) => document.property_id === property.id).sort((a, b) => String(b.uploaded_at).localeCompare(String(a.uploaded_at)));
-    return `<section class="panel"><div class="panel-head"><div><h2>Archivio documenti</h2><p>Contratti, verbali, bollette, mutui e documentazione di manutenzione.</p></div><button class="button small" data-action="add-document" data-property-id="${property.id}">⇧ Carica file</button></div>${docs.length ? `<div class="table-wrap"><table><thead><tr><th>Documento</th><th>Categoria</th><th>Caricato</th><th>Visibilità inquilino</th></tr></thead><tbody>${docs.map((document) => `<tr><td><strong>${esc(document.name)}</strong></td><td>${esc(document.category)}</td><td>${dateLabel(document.uploaded_at)}</td><td>${document.visible_to_tenant ? badge("active") : "<span class=\"row-muted\">Solo admin</span>"}</td></tr>`).join("")}</tbody></table></div>` : empty("▤", "Archivio vuoto", "Carica il contratto o qualsiasi documento utile per la gestione.")}</section>`;
+    return `<section class="panel"><div class="panel-head"><div><h2>Archivio documenti</h2><p>Contratti, verbali, bollette, mutui e documentazione di manutenzione.</p></div><button class="button small" data-action="add-document" data-property-id="${property.id}">⇧ Carica file</button></div>${docs.length ? `<div class="table-wrap"><table><thead><tr><th>Documento</th><th>Categoria</th><th>Caricato</th><th>Visibilità inquilino</th><th>Azioni</th></tr></thead><tbody>${docs.map((document) => `<tr><td><strong>${esc(document.name)}</strong></td><td>${esc(document.category)}</td><td>${dateLabel(document.uploaded_at)}</td><td>${document.visible_to_tenant ? badge("active") : "<span class=\"row-muted\">Solo admin</span>"}</td><td>${deleteButton("document", document.id)}</td></tr>`).join("")}</tbody></table></div>` : empty("▤", "Archivio vuoto", "Carica il contratto o qualsiasi documento utile per la gestione.")}</section>`;
   }
 
   function renderPropertyMortgage(property) {
@@ -967,7 +982,7 @@
     if (!mortgage) return `<section class="panel">${empty("⌁", "Nessun mutuo registrato", "Puoi aggiungerlo dalla sezione mutuo quando attiveremo la configurazione completa del backend.")}</section>`;
     const paid = Math.max(0, Number(mortgage.original_amount) - Number(mortgage.remaining_amount));
     const percent = mortgage.original_amount ? Math.round((paid / mortgage.original_amount) * 100) : 0;
-    return `<section class="panel pad"><div class="section-head"><div><h2>Mutuo</h2><p>${esc(mortgage.lender)} · scadenza ${dateLabel(mortgage.end_date)}</p></div></div><div class="detail-grid"><article class="data-tile"><span>Importo iniziale</span><strong>${money(mortgage.original_amount)}</strong></article><article class="data-tile"><span>Residuo</span><strong>${money(mortgage.remaining_amount)}</strong></article><article class="data-tile"><span>Rata mensile</span><strong>${money(mortgage.monthly_payment)}</strong></article><article class="data-tile"><span>Tasso</span><strong>${decimal(mortgage.rate)}%</strong></article><article class="data-tile"><span>Scadenza rata</span><strong>Giorno ${esc(mortgage.due_day)}</strong></article><article class="data-tile"><span>Capitale rimborsato</span><strong>${percent}%</strong></article></div></section>`;
+    return `<section class="panel pad"><div class="section-head"><div><h2>Mutuo</h2><p>${esc(mortgage.lender)} · scadenza ${dateLabel(mortgage.end_date)}</p></div>${deleteButton("mortgage", mortgage.id)}</div><div class="detail-grid"><article class="data-tile"><span>Importo iniziale</span><strong>${money(mortgage.original_amount)}</strong></article><article class="data-tile"><span>Residuo</span><strong>${money(mortgage.remaining_amount)}</strong></article><article class="data-tile"><span>Rata mensile</span><strong>${money(mortgage.monthly_payment)}</strong></article><article class="data-tile"><span>Tasso</span><strong>${decimal(mortgage.rate)}%</strong></article><article class="data-tile"><span>Scadenza rata</span><strong>Giorno ${esc(mortgage.due_day)}</strong></article><article class="data-tile"><span>Capitale rimborsato</span><strong>${percent}%</strong></article></div></section>`;
   }
 
   function renderPropertyMaintenance(property) {
@@ -983,7 +998,8 @@
 
   function permissionCard(property, tenant) {
     const permissions = getPermissions(property.id, tenant.id);
-    return `<div class="panel pad" style="box-shadow:none;border-radius:14px"><div class="section-head"><div><h2>${esc(tenant.display_name)}</h2><p>${esc(tenant.email || tenant.username || "Profilo inquilino")}</p></div><button class="button secondary small" data-action="edit-permissions" data-property-id="${property.id}" data-tenant-id="${tenant.id}">Modifica</button></div><div class="permission-grid"><div class="permission"><span>${permissions.show_documents ? "✓" : "—"}</span><span><strong>Documenti</strong><span>Documenti abilitati</span></span></div><div class="permission"><span>${permissions.show_utilities ? "✓" : "—"}</span><span><strong>Utenze</strong><span>Bollettini e scadenze</span></span></div><div class="permission"><span>${permissions.show_maintenance ? "✓" : "—"}</span><span><strong>Interventi</strong><span>Stato manutenzioni</span></span></div><div class="permission"><span>${permissions.allow_payment_upload ? "✓" : "—"}</span><span><strong>Contabili</strong><span>Caricamento pagamento</span></span></div></div></div>`;
+    const savedPermission = state.data.tenant_permissions.find((item) => item.property_id === property.id && item.tenant_id === tenant.id);
+    return `<div class="panel pad" style="box-shadow:none;border-radius:14px"><div class="section-head"><div><h2>${esc(tenant.display_name)}</h2><p>${esc(tenant.email || tenant.username || "Profilo inquilino")}</p></div><div class="panel-actions"><button class="button secondary small" data-action="edit-permissions" data-property-id="${property.id}" data-tenant-id="${tenant.id}">Modifica</button>${deleteButton("permission", savedPermission?.id)}</div></div><div class="permission-grid"><div class="permission"><span>${permissions.show_documents ? "✓" : "—"}</span><span><strong>Documenti</strong><span>Documenti abilitati</span></span></div><div class="permission"><span>${permissions.show_utilities ? "✓" : "—"}</span><span><strong>Utenze</strong><span>Bollettini e scadenze</span></span></div><div class="permission"><span>${permissions.show_maintenance ? "✓" : "—"}</span><span><strong>Interventi</strong><span>Stato manutenzioni</span></span></div><div class="permission"><span>${permissions.allow_payment_upload ? "✓" : "—"}</span><span><strong>Contabili</strong><span>Caricamento pagamento</span></span></div></div></div>`;
   }
 
   function renderFinance() {
@@ -996,7 +1012,7 @@
   }
 
   function financeTable(entries) {
-    return entries.length ? `<div class="table-wrap"><table><thead><tr><th>Data</th><th>Immobile</th><th>Categoria</th><th>Tipo</th><th>Importo</th><th>Stato</th></tr></thead><tbody>${entries.map((entry) => `<tr><td>${dateLabel(entry.date)}</td><td><strong>${esc(getProperty(entry.property_id)?.name || "Generale")}</strong></td><td>${esc(entry.category)}</td><td>${entry.direction === "income" ? "Entrata" : "Uscita"}</td><td class="number" style="color:${entry.direction === "income" ? "#087468" : "#b54d4d"}">${entry.direction === "income" ? "+" : "−"} ${money(entry.amount)}</td><td>${badge(entry.status || "paid")}</td></tr>`).join("")}</tbody></table></div>` : empty("€", "Nessun movimento", "Registra il primo costo o la prima entrata.");
+    return entries.length ? `<div class="table-wrap"><table><thead><tr><th>Data</th><th>Immobile</th><th>Categoria</th><th>Tipo</th><th>Importo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${entries.map((entry) => `<tr><td>${dateLabel(entry.date)}</td><td><strong>${esc(getProperty(entry.property_id)?.name || "Generale")}</strong></td><td>${esc(entry.category)}</td><td>${entry.direction === "income" ? "Entrata" : "Uscita"}</td><td class="number" style="color:${entry.direction === "income" ? "#087468" : "#b54d4d"}">${entry.direction === "income" ? "+" : "−"} ${money(entry.amount)}</td><td>${badge(entry.status || "paid")}</td><td>${deleteButton("financial", entry.id)}</td></tr>`).join("")}</tbody></table></div>` : empty("€", "Nessun movimento", "Registra il primo costo o la prima entrata.");
   }
 
   function renderMaintenance() {
@@ -1006,17 +1022,21 @@
   }
 
   function maintenanceTable(jobs) {
-    return `<div class="table-wrap"><table><thead><tr><th>Intervento</th><th>Immobile</th><th>Fornitore</th><th>Data</th><th>Costo</th><th>Stato</th></tr></thead><tbody>${jobs.map((job) => `<tr><td><strong>${esc(job.title)}</strong><br><small>${esc(job.category || "")}</small></td><td>${esc(getProperty(job.property_id)?.name || "—")}</td><td>${esc(getProvider(job.provider_id)?.display_name || "Non assegnato")}</td><td>${dateLabel(job.completed_date || job.scheduled_date)}</td><td class="number">${job.total_cost ? money(job.total_cost) : "—"}</td><td>${badge(job.status)}</td></tr>`).join("")}</tbody></table></div>`;
+    return `<div class="table-wrap"><table><thead><tr><th>Intervento</th><th>Immobile</th><th>Fornitore</th><th>Data</th><th>Costo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${jobs.map((job) => `<tr><td><strong>${esc(job.title)}</strong><br><small>${esc(job.category || "")}</small></td><td>${esc(getProperty(job.property_id)?.name || "—")}</td><td>${esc(getProvider(job.provider_id)?.display_name || "Non assegnato")}</td><td>${dateLabel(job.completed_date || job.scheduled_date)}</td><td class="number">${job.total_cost ? money(job.total_cost) : "—"}</td><td>${badge(job.status)}</td><td>${deleteButton("maintenance", job.id)}</td></tr>`).join("")}</tbody></table></div>`;
   }
 
   function providerCard(provider) {
-    return `<article class="task-row"><span class="property-avatar">${esc(initials(provider.display_name))}</span><div class="task-copy"><strong>${esc(provider.display_name)}</strong><span>${esc(provider.category)}${provider.company_name ? ` · ${esc(provider.company_name)}` : ""}<br>${esc(provider.phone || provider.email || "")}</span></div></article>`;
+    return `<article class="task-row"><span class="property-avatar">${esc(initials(provider.display_name))}</span><div class="task-copy"><strong>${esc(provider.display_name)}</strong><span>${esc(provider.category)}${provider.company_name ? ` · ${esc(provider.company_name)}` : ""}<br>${esc(provider.phone || provider.email || "")}</span></div>${deleteButton("provider", provider.id)}</article>`;
   }
 
   function renderPeople() {
-    const tenants = state.data.profiles.filter((profile) => profile.role === "tenant");
+    const tenants = [...new Map(
+      state.data.profiles
+        .filter((profile) => profile.role === "tenant")
+        .map((profile) => [profile.id, profile])
+    ).values()];
     const providers = state.data.service_providers;
-    return `<div class="split"><section class="panel"><div class="panel-head"><div><h2>Inquilini</h2><p>Apri una scheda per consultare contratto, canoni e bollette di ogni persona.</p></div><button class="button small" data-action="add-tenant">+ Nuovo inquilino</button></div>${tenants.length ? `<div class="table-wrap"><table><thead><tr><th>Inquilino</th><th>Immobile</th><th>Contatto</th><th>Profilo</th><th></th></tr></thead><tbody>${tenants.map((tenant) => { const properties = tenantProperties(tenant.id); return `<tr><td><strong>${esc(tenant.display_name)}</strong><br><small>@${esc(tenant.username || "utente")}</small></td><td>${properties.length ? properties.map((property) => esc(property.name)).join("<br>") : "—"}</td><td>${esc(tenant.phone || tenant.email || "—")}</td><td>${badge("active")}</td><td><button class="button secondary small" data-action="open-tenant" data-tenant-id="${esc(tenant.id)}">Apri scheda</button></td></tr>`; }).join("")}</tbody></table></div>` : empty("♙", "Nessun inquilino", "Crea un profilo e poi collegalo a un contratto.")}</section><section class="panel"><div class="panel-head"><div><h2>Manutentori</h2><p>Profili professionali riutilizzabili per ogni casa.</p></div><button class="button secondary small" data-action="add-provider">+ Fornitore</button></div><div class="task-list">${providers.length ? providers.map(providerCard).join("") : empty("⌁", "Nessun manutentore", "Aggiungi la tua rubrica di fiducia.")}</div></section></div>`;
+    return `<div class="split"><section class="panel"><div class="panel-head"><div><h2>Inquilini</h2><p>Apri una scheda per consultare contratto, canoni e bollette di ogni persona.</p></div><button class="button small" data-action="add-tenant">+ Nuovo inquilino</button></div>${tenants.length ? `<div class="table-wrap"><table><thead><tr><th>Inquilino</th><th>Immobile</th><th>Contatto</th><th>Profilo</th><th>Azioni</th></tr></thead><tbody>${tenants.map((tenant) => { const properties = tenantProperties(tenant.id); return `<tr><td><strong>${esc(tenant.display_name)}</strong><br><small>@${esc(tenant.username || "utente")}</small></td><td>${properties.length ? properties.map((property) => esc(property.name)).join("<br>") : "—"}</td><td>${esc(tenant.phone || tenant.email || "—")}</td><td>${badge("active")}</td><td><div class="panel-actions"><button class="button secondary small" data-action="open-tenant" data-tenant-id="${esc(tenant.id)}">Apri scheda</button>${deleteButton("tenant", tenant.id)}</div></td></tr>`; }).join("")}</tbody></table></div>` : empty("♙", "Nessun inquilino", "Crea un profilo e poi collegalo a un contratto.")}</section><section class="panel"><div class="panel-head"><div><h2>Manutentori</h2><p>Profili professionali riutilizzabili per ogni casa.</p></div><button class="button secondary small" data-action="add-provider">+ Fornitore</button></div><div class="task-list">${providers.length ? providers.map(providerCard).join("") : empty("⌁", "Nessun manutentore", "Aggiungi la tua rubrica di fiducia.")}</div></section></div>`;
   }
 
   function renderTenantDetail() {
@@ -1043,14 +1063,14 @@
 
     return `<div class="stack">
       <button class="button ghost small back-link" data-action="navigate" data-view="people">← Torna a Persone</button>
-      <section class="property-hero tenant-profile-hero"><div><div class="eyebrow">SCHEDA INQUILINO</div><h2>${esc(tenant.display_name)}</h2><p>${esc(tenant.email || tenant.username || "Profilo inquilino")}${tenant.phone ? ` · ${esc(tenant.phone)}` : ""}</p><div class="property-hero-meta"><span class="hero-pill">${leases.length} ${leases.length === 1 ? "contratto" : "contratti"}</span><span class="hero-pill">${propertyIds.length} ${propertyIds.length === 1 ? "immobile" : "immobili"}</span></div></div>${activeLeases.length ? `<button class="button hero-action" data-action="add-payment" data-property-id="${esc(activeLeases[0].property_id)}" data-lease-id="${esc(activeLeases[0].id)}">+ Registra canone</button>` : ""}</section>
+      <section class="property-hero tenant-profile-hero"><div><div class="eyebrow">SCHEDA INQUILINO</div><h2>${esc(tenant.display_name)}</h2><p>${esc(tenant.email || tenant.username || "Profilo inquilino")}${tenant.phone ? ` · ${esc(tenant.phone)}` : ""}</p><div class="property-hero-meta"><span class="hero-pill">${leases.length} ${leases.length === 1 ? "contratto" : "contratti"}</span><span class="hero-pill">${propertyIds.length} ${propertyIds.length === 1 ? "immobile" : "immobili"}</span></div></div><div class="panel-actions">${activeLeases.length ? `<button class="button hero-action" data-action="add-payment" data-property-id="${esc(activeLeases[0].property_id)}" data-lease-id="${esc(activeLeases[0].id)}">+ Registra canone</button>` : ""}${deleteButton("tenant", tenant.id)}</div></section>
       <section class="detail-grid tenant-summary-grid">
         <article class="data-tile"><span>Canone mensile attivo</span><strong>${activeLeases.length ? money(activeRent) : "Nessun contratto attivo"}</strong></article>
         <article class="data-tile"><span>Fine contratto più vicina</span><strong>${nextEnd ? dateLabel(nextEnd) : "—"}</strong></article>
         <article class="data-tile"><span>Mesi pagati / scaduti</span><strong>${paidRows.length} / ${dueRows.length}</strong></article>
         <article class="data-tile"><span>Residuo atteso da verificare</span><strong>${money(outstanding)}</strong></article>
       </section>
-      <section class="panel"><div class="panel-head"><div><h2>Contratti</h2><p>Data di ingresso, scadenza e importo pattuito.</p></div></div>${leases.length ? `<div class="contract-list">${leases.map((lease) => `<article class="contract-summary"><div class="section-head"><div><h3>${esc(lease.contract_reference || getProperty(lease.property_id)?.name || "Contratto di locazione")}</h3><p>${esc(getProperty(lease.property_id)?.name || "Immobile non disponibile")} · ${dateLabel(lease.start_date)} — ${dateLabel(lease.end_date)}</p></div>${badge(lease.status === "active" ? "active" : lease.status)}</div><div class="detail-grid"><article class="data-tile"><span>Canone mensile</span><strong>${money(lease.monthly_rent)}</strong></article><article class="data-tile"><span>Deposito</span><strong>${money(lease.deposit)}</strong></article><article class="data-tile"><span>Scadenza mensile</span><strong>Giorno ${esc(lease.due_day || "—")}</strong></article></div></article>`).join("")}</div>` : empty("▤", "Nessun contratto collegato", "Collega l’inquilino a un contratto dalla scheda dell’immobile.")}</section>
+      <section class="panel"><div class="panel-head"><div><h2>Contratti</h2><p>Data di ingresso, scadenza e importo pattuito.</p></div></div>${leases.length ? `<div class="contract-list">${leases.map((lease) => `<article class="contract-summary"><div class="section-head"><div><h3>${esc(lease.contract_reference || getProperty(lease.property_id)?.name || "Contratto di locazione")}</h3><p>${esc(getProperty(lease.property_id)?.name || "Immobile non disponibile")} · ${dateLabel(lease.start_date)} — ${dateLabel(lease.end_date)}</p></div><div class="panel-actions">${badge(lease.status === "active" ? "active" : lease.status)}${deleteButton("lease", lease.id)}</div></div><div class="detail-grid"><article class="data-tile"><span>Canone mensile</span><strong>${money(lease.monthly_rent)}</strong></article><article class="data-tile"><span>Deposito</span><strong>${money(lease.deposit)}</strong></article><article class="data-tile"><span>Scadenza mensile</span><strong>Giorno ${esc(lease.due_day || "—")}</strong></article></div></article>`).join("")}</div>` : empty("▤", "Nessun contratto collegato", "Collega l’inquilino a un contratto dalla scheda dell’immobile.")}</section>
       <section class="panel"><div class="panel-head"><div><h2>Storico canoni</h2><p>Una riga per ogni mese del contratto. I mesi senza registrazione sono da verificare.</p></div></div>${ledger.length ? `<div class="callout history-note">Se più inquilini condividono lo stesso contratto, importo e stato del canone sono riferiti al contratto condiviso.</div><div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Immobile</th><th>Scadenza</th><th>Dovuto</th><th>Pagato</th><th>Stato</th><th></th></tr></thead><tbody>${ledger.map((row) => rentLedgerRow(row)).join("")}</tbody></table></div>` : empty("€", "Nessuno storico canoni", "Le rate mensili compariranno qui quando è presente un contratto.")}</section>
       ${utilitySection}
     </div>`;
@@ -1060,9 +1080,11 @@
     let action = "";
     if (!row.payment && row.status !== "upcoming") {
       action = `<button class="button secondary small" data-action="add-payment" data-property-id="${esc(row.lease.property_id)}" data-lease-id="${esc(row.lease.id)}" data-period="${esc(row.period)}" data-due-date="${esc(row.dueDate)}">Registra canone</button>`;
-    } else if (row.payment && row.status !== "cancelled") {
-      const nextStatus = row.status === "paid" ? "pending" : "paid";
-      action = `<button class="button secondary small" data-action="set-rent-payment-status" data-lease-id="${esc(row.lease.id)}" data-period="${esc(row.period)}" data-status="${nextStatus}">${row.status === "paid" ? "Riapri" : "Segna pagato"}</button>`;
+    } else if (row.payment) {
+      const statusAction = row.status !== "cancelled"
+        ? `<button class="button secondary small" data-action="set-rent-payment-status" data-lease-id="${esc(row.lease.id)}" data-period="${esc(row.period)}" data-status="${row.status === "paid" ? "pending" : "paid"}">${row.status === "paid" ? "Riapri" : "Segna pagato"}</button>`
+        : "";
+      action = `<div class="panel-actions">${statusAction}${deleteButton("payment", row.payment.id)}</div>`;
     }
     return `<tr><td><strong>${esc(monthLabel(row.period))}</strong><br><small>${esc(row.lease.contract_reference || "Contratto")}</small></td><td>${esc(getProperty(row.lease.property_id)?.name || "—")}</td><td>${dateLabel(row.dueDate)}</td><td class="number">${money(row.amountDue)}</td><td class="number">${money(row.amountPaid)}</td><td>${badge(row.status)}${row.status === "missing" ? `<br><small>da verificare</small>` : ""}</td><td>${action}</td></tr>`;
   }
@@ -1070,11 +1092,11 @@
   function tenantUtilityBillRow(bill, utilities) {
     const utility = utilities.find((item) => item.id === bill.utility_id);
     const nextStatus = bill.status === "paid" ? "pending" : "paid";
-    return `<tr><td>${esc(monthLabel(bill.period))}</td><td>${esc(getProperty(bill.property_id)?.name || "—")}</td><td>${esc(utility?.kind || "Utenza")}</td><td>${dateLabel(bill.due_date)}</td><td class="number">${money(bill.amount)}</td><td>${badge(bill.status)}</td><td><button class="button secondary small" data-action="set-utility-bill-status" data-bill-id="${esc(bill.id)}" data-status="${nextStatus}">${bill.status === "paid" ? "Segna da pagare" : "Segna pagata"}</button></td></tr>`;
+    return `<tr><td>${esc(monthLabel(bill.period))}</td><td>${esc(getProperty(bill.property_id)?.name || "—")}</td><td>${esc(utility?.kind || "Utenza")}</td><td>${dateLabel(bill.due_date)}</td><td class="number">${money(bill.amount)}</td><td>${badge(bill.status)}</td><td><div class="panel-actions"><button class="button secondary small" data-action="set-utility-bill-status" data-bill-id="${esc(bill.id)}" data-status="${nextStatus}">${bill.status === "paid" ? "Segna da pagare" : "Segna pagata"}</button>${deleteButton("utility-bill", bill.id)}</div></td></tr>`;
   }
 
   function renderSettings() {
-    const tenants = state.data.profiles.filter((profile) => profile.role === "tenant");
+    const tenants = [...new Map(state.data.profiles.filter((profile) => profile.role === "tenant").map((profile) => [profile.id, profile])).values()];
     return `<div class="stack">
       <section class="panel pad"><div class="section-head"><div><h2>Ruoli e permessi</h2><p>Gli accessi sono determinati dal ruolo dell’account e dalle autorizzazioni associate.</p></div></div><div class="role-grid">
         <article class="role-card role-admin"><div class="role-title"><span class="role-mark">A</span><div><h3>Admin</h3><small>Amministratore</small></div></div><p>Gestisce immobili, persone, contratti, canoni, utenze e impostazioni. Può eliminare inquilini o immobili dopo la verifica esplicita.</p></article>
@@ -1097,23 +1119,57 @@
     return `<div class="table-wrap"><table><thead><tr><th>${kind === "tenant" ? "Profilo" : "Immobile"}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
+  function getManagedRecord(kind, id) {
+    const collections = {
+      tenant: state.data.profiles,
+      property: state.data.properties,
+      lease: state.data.leases,
+      payment: state.data.rent_payments,
+      utility: state.data.utility_accounts,
+      "utility-bill": state.data.utility_bills,
+      mortgage: state.data.mortgages,
+      financial: state.data.financial_entries,
+      document: state.data.documents,
+      maintenance: state.data.maintenance_jobs,
+      provider: state.data.service_providers,
+      permission: state.data.tenant_permissions
+    };
+    return collections[kind]?.find((item) => item.id === id) || null;
+  }
+
   function openDeleteConfirmation(kind, id) {
     if (state.profile?.role !== "admin") {
       toast("Solo un amministratore può cancellare i dati.", "error");
       return;
     }
-    const item = kind === "tenant" ? getProfile(id) : getProperty(id);
+    const item = getManagedRecord(kind, id);
     if (!item) {
       toast("Elemento non trovato. Aggiorna la pagina e riprova.", "error");
       return;
     }
-    const isTenant = kind === "tenant";
-    const title = isTenant ? item.display_name : item.name;
-    const details = isTenant
-      ? `L’account di ${title} e i relativi permessi saranno eliminati. I canoni storici resteranno senza il collegamento al profilo; un contratto condiviso resterà attivo per gli altri inquilini.`
-      : `L’immobile ${title} e i contratti, canoni, utenze, bollette, mutuo, documenti e interventi collegati saranno eliminati. I movimenti economici resteranno nello storico senza l’immobile.`;
-    const body = `<div class="stack"><div class="callout warning">${esc(details)}</div><form data-form="delete-record" data-delete-type="${kind}" data-record-id="${esc(item.id)}"><div class="field"><label for="delete-confirmation">Digita <strong>ELIMINA</strong> per confermare</label><input id="delete-confirmation" name="confirmation" type="text" autocomplete="off" required data-input="delete-confirmation" placeholder="ELIMINA" /></div><label class="delete-ack"><input type="checkbox" name="acknowledged" data-input="delete-confirmation-check" /><span>Ho verificato l’elemento e confermo la cancellazione permanente.</span></label><div class="dialog-foot" style="margin:18px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button danger" type="submit" data-delete-submit disabled>Conferma cancellazione</button></div></form></div>`;
-    openDialog(dialogTemplate(`Elimina ${isTenant ? "inquilino" : "immobile"}`, "Questa operazione non si può annullare.", body));
+    const labels = {
+      tenant: "inquilino", property: "immobile", lease: "contratto", payment: "canone",
+      utility: "utenza", "utility-bill": "bolletta", mortgage: "mutuo", financial: "movimento",
+      document: "documento", maintenance: "intervento", provider: "manutentore", permission: "permesso"
+    };
+    const title = item.display_name || item.name || item.title || item.contract_reference || item.lender || item.kind || item.category || labels[kind];
+    const detailsByKind = {
+      tenant: `L’account di ${title} e i relativi permessi saranno eliminati. I canoni storici resteranno senza il collegamento al profilo; un contratto condiviso resterà attivo per gli altri inquilini.`,
+      property: `L’immobile ${title} e contratti, canoni, utenze, bollette, mutuo, documenti e interventi collegati saranno eliminati. I movimenti economici resteranno nello storico senza l’immobile.`,
+      lease: `Il contratto ${title} e i canoni collegati saranno eliminati. I profili degli inquilini resteranno nell’archivio.`,
+      payment: `Il canone ${monthLabel(item.period)} e la contabile collegata saranno eliminati.`,
+      utility: `L’utenza ${title} e le bollette collegate saranno eliminate.`,
+      "utility-bill": `La bolletta ${monthLabel(item.period)} e il documento collegato saranno eliminati.`,
+      mortgage: `Il mutuo registrato per l’immobile sarà eliminato.`,
+      financial: `Il movimento ${title} sarà eliminato dal conto economico.`,
+      document: `Il documento ${title} e il file privato collegato saranno eliminati.`,
+      maintenance: `L’intervento ${title} sarà eliminato. Eventuali movimenti economici già registrati resteranno nello storico.`,
+      provider: `Il manutentore ${title} sarà rimosso dalla rubrica. Gli interventi resteranno, senza fornitore assegnato.`,
+      permission: `Le autorizzazioni personalizzate di questo inquilino per l’immobile saranno rimosse e torneranno i valori predefiniti.`
+    };
+    const details = detailsByKind[kind] || `L’elemento ${title} sarà eliminato definitivamente.`;
+    const body = `<div class="stack"><div class="callout warning">${esc(details)}</div><form data-form="delete-record" data-delete-type="${esc(kind)}" data-record-id="${esc(item.id)}"><div class="field"><label for="delete-confirmation">Digita <strong>ELIMINA</strong> per confermare</label><input id="delete-confirmation" name="confirmation" type="text" autocomplete="off" required data-input="delete-confirmation" placeholder="ELIMINA" /></div><label class="delete-ack"><input type="checkbox" name="acknowledged" data-input="delete-confirmation-check" /><span>Ho verificato l’elemento e confermo la cancellazione permanente.</span></label><div class="dialog-foot" style="margin:18px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button danger" type="submit" data-delete-submit disabled>Conferma cancellazione</button></div></form></div>`;
+    openDialog(dialogTemplate(`Elimina ${labels[kind] || "elemento"}`, "Questa operazione non si può annullare.", body));
   }
 
   function updateDeleteConfirmation(form) {
@@ -1410,6 +1466,15 @@
     const form = event.target.closest("form[data-form]");
     if (!form) return;
     event.preventDefault();
+    // Impedisce doppi invii mentre una richiesta Supabase è ancora in corso.
+    if (form.dataset.submitting === "true") return;
+    form.dataset.submitting = "true";
+    const submitButtons = [...form.querySelectorAll('button[type="submit"]')];
+    const submitLabels = submitButtons.map((button) => button.textContent);
+    submitButtons.forEach((button) => {
+      button.disabled = true;
+      button.textContent = "Salvataggio…";
+    });
     const type = form.dataset.form;
     const data = new FormData(form);
     const value = (name) => String(data.get(name) ?? "").trim();
@@ -1436,16 +1501,45 @@
           id: form.dataset.propertyId || newId(),
           name: value("name"), address: value("address"), city: value("city"), postal_code: value("postal_code"), type: value("type"), status: value("status"), estimated_value: Number(value("estimated_value") || 0), notes: value("notes"), created_at: dateISO()
         };
+        assertNoDuplicate(state.data.properties, item, (saved, next) =>
+          normalizedKey(saved.name) === normalizedKey(next.name) &&
+          normalizedKey(saved.address) === normalizedKey(next.address) &&
+          normalizedKey(saved.city) === normalizedKey(next.city),
+        "Esiste già un immobile con lo stesso nome e indirizzo.");
         const index = state.data.properties.findIndex((property) => property.id === item.id);
+        await syncEntity("property", item, index >= 0 ? "update" : "insert");
         if (index >= 0) state.data.properties[index] = { ...state.data.properties[index], ...item };
         else state.data.properties.push(item);
-        await syncEntity("property", item, index >= 0 ? "update" : "insert");
         finishMutation(index >= 0 ? "Immobile aggiornato." : "Immobile creato.");
         return;
       }
       if (type === "tenant") {
-        const tenant = { id: newId(), role: "tenant", display_name: value("display_name"), username: value("username"), email: value("email"), phone: value("phone"), password: value("password") };
-        const existingLease = getPrimaryLease(value("property_id"));
+        const email = value("email").toLocaleLowerCase("it-IT");
+        const propertyId = value("property_id");
+        const knownEmailProfile = state.data.profiles.find((profile) => normalizedKey(profile.email) === normalizedKey(email));
+        const knownTenant = knownEmailProfile?.role === "tenant" ? knownEmailProfile : null;
+        const knownUsername = state.data.profiles.find((profile) => normalizedKey(profile.username) === normalizedKey(value("username")));
+        const sameContact = state.data.profiles.find((profile) => profile.role === "tenant" &&
+          normalizedKey(profile.display_name) === normalizedKey(value("display_name")) &&
+          value("phone") && normalizedKey(profile.phone) === normalizedKey(value("phone")));
+        if (sameContact && normalizedKey(sameContact.email) !== normalizedKey(email)) {
+          throw new Error(`Esiste già un inquilino con questo nome e telefono (${sameContact.email || "email non indicata"}). Controlla i dati prima di creare un altro profilo.`);
+        }
+        const activeLeaseForProperty = getActiveLeases(propertyId).find((lease) => lease.tenant_ids?.includes(knownTenant?.id));
+        if (knownTenant && activeLeaseForProperty) {
+          throw new Error("Questo inquilino è già collegato a un contratto attivo per l’immobile selezionato.");
+        }
+        if (knownTenant) {
+          throw new Error("Esiste già un profilo inquilino con questa email. Apri la scheda esistente per evitare di creare un duplicato.");
+        }
+        if (knownEmailProfile) {
+          throw new Error("Questa email è già associata a un account della piattaforma. Controlla l’indirizzo prima di creare il profilo.");
+        }
+        if (knownUsername) {
+          throw new Error("Questo username è già utilizzato da un altro account. Scegline uno diverso.");
+        }
+        const tenant = { id: knownTenant?.id || newId(), role: "tenant", display_name: value("display_name"), username: value("username"), email, phone: value("phone"), password: value("password") };
+        const existingLease = activeLeaseForProperty;
         const lease = existingLease
           ? { ...existingLease, tenant_ids: [...new Set([...(existingLease.tenant_ids || []), tenant.id])] }
           : { id: newId(), property_id: value("property_id"), tenant_ids: [tenant.id], monthly_rent: Number(value("monthly_rent")), deposit: 0, due_day: Number(value("due_day")), start_date: value("start_date"), end_date: value("end_date"), status: "active", contract_reference: `Contratto ${tenant.display_name}` };
@@ -1458,59 +1552,111 @@
         }
         const tenantProfile = { ...tenant };
         delete tenantProfile.password;
-        state.data.profiles.push(tenantProfile);
+        const existingPermission = state.data.tenant_permissions.find((permission) => permission.property_id === lease.property_id && permission.tenant_id === tenant.id);
+        const permission = existingPermission || { id: newId(), property_id: lease.property_id, tenant_id: tenant.id, show_documents: true, show_utilities: true, show_maintenance: false, allow_payment_upload: true, allow_utility_upload: false };
+        if (supabaseClient && state.sessionUser) await syncTenantRelations(tenantProfile, lease, permission);
+        const profileIndex = state.data.profiles.findIndex((profile) => profile.id === tenant.id);
+        if (profileIndex >= 0) {
+          state.data.profiles[profileIndex] = { ...state.data.profiles[profileIndex], ...tenantProfile };
+        } else {
+          state.data.profiles.push(tenantProfile);
+        }
         if (existingLease) Object.assign(existingLease, lease); else state.data.leases.push(lease);
-        state.data.tenant_permissions.push({ id: newId(), property_id: lease.property_id, tenant_id: tenant.id, show_documents: true, show_utilities: true, show_maintenance: false, allow_payment_upload: true, allow_utility_upload: false });
-        if (supabaseClient && state.sessionUser) await syncTenantRelations(tenantProfile, lease);
+        if (!existingPermission) state.data.tenant_permissions.push(permission);
         finishMutation(existingLease ? "Inquilino collegato al contratto esistente." : "Inquilino e contratto creati.");
         return;
       }
       if (type === "provider") {
         const provider = { id: newId(), display_name: value("display_name"), company_name: value("company_name"), category: value("category"), email: value("email"), phone: value("phone"), notes: value("notes") };
-        state.data.service_providers.push(provider);
+        assertNoDuplicate(state.data.service_providers, provider, (saved, next) => {
+          const sameEmail = normalizedKey(next.email) && normalizedKey(saved.email) === normalizedKey(next.email);
+          const samePhoneAndName = normalizedKey(saved.display_name) === normalizedKey(next.display_name) && normalizedKey(saved.phone) === normalizedKey(next.phone);
+          return sameEmail || samePhoneAndName;
+        }, "Questo manutentore è già presente nella rubrica.");
         await syncEntity("provider", provider, "insert");
+        state.data.service_providers.push(provider);
         finishMutation("Manutentore aggiunto.");
         return;
       }
       if (type === "maintenance") {
         const job = { id: newId(), property_id: value("property_id"), provider_id: value("provider_id") || null, title: value("title"), category: value("category"), priority: value("priority"), status: value("status"), scheduled_date: value("scheduled_date"), completed_date: value("status") === "done" ? value("scheduled_date") : "", total_cost: Number(value("total_cost") || 0), notes: value("notes") };
-        state.data.maintenance_jobs.push(job);
-        if (job.status === "done" && job.total_cost > 0) state.data.financial_entries.push({ id: newId(), property_id: job.property_id, direction: "expense", category: `Manutenzione · ${job.category}`, amount: job.total_cost, date: job.completed_date, status: "paid", description: job.title });
+        assertNoDuplicate(state.data.maintenance_jobs, job, (saved, next) =>
+          saved.property_id === next.property_id && saved.provider_id === next.provider_id &&
+          normalizedKey(saved.title) === normalizedKey(next.title) && saved.scheduled_date === next.scheduled_date,
+        "Questo intervento risulta già registrato per la stessa data e immobile.");
+        const generatedExpense = job.status === "done" && job.total_cost > 0
+          ? { id: newId(), property_id: job.property_id, direction: "expense", category: `Manutenzione · ${job.category}`, amount: job.total_cost, date: job.completed_date, status: "paid", description: job.title }
+          : null;
+        const expenseAlreadyExists = generatedExpense && state.data.financial_entries.some((saved) =>
+          saved.property_id === generatedExpense.property_id && saved.direction === generatedExpense.direction &&
+          saved.amount === generatedExpense.amount && saved.date === generatedExpense.date &&
+          normalizedKey(saved.category) === normalizedKey(generatedExpense.category) &&
+          normalizedKey(saved.description) === normalizedKey(generatedExpense.description));
         await syncEntity("maintenance", job, "insert");
+        if (generatedExpense && !expenseAlreadyExists) await syncEntity("financial", generatedExpense, "insert");
+        state.data.maintenance_jobs.push(job);
+        if (generatedExpense && !expenseAlreadyExists) state.data.financial_entries.push(generatedExpense);
         finishMutation("Intervento salvato.");
         return;
       }
       if (type === "financial") {
         const entry = { id: newId(), property_id: value("property_id") || null, direction: value("direction"), category: value("category"), amount: Number(value("amount")), date: value("date"), status: value("status"), description: value("description") };
-        state.data.financial_entries.push(entry);
+        assertNoDuplicate(state.data.financial_entries, entry, (saved, next) =>
+          saved.property_id === next.property_id && saved.direction === next.direction &&
+          saved.amount === next.amount && saved.date === next.date &&
+          normalizedKey(saved.category) === normalizedKey(next.category) &&
+          normalizedKey(saved.description) === normalizedKey(next.description),
+        "Questo movimento economico è già presente con gli stessi dati.");
         await syncEntity("financial", entry, "insert");
+        state.data.financial_entries.push(entry);
         finishMutation("Movimento registrato.");
         return;
       }
       if (type === "utility") {
-        const utility = { id: newId(), property_id: value("property_id"), kind: value("kind"), provider: value("provider"), holder: value("holder"), recharged_to_tenant: value("recharged_to_tenant") === "true", contract_code: value("contract_code"), notes: value("notes") };
-        state.data.utility_accounts.push(utility);
+        const draftUtility = { id: newId(), property_id: value("property_id"), kind: value("kind"), provider: value("provider"), holder: value("holder"), recharged_to_tenant: value("recharged_to_tenant") === "true", contract_code: value("contract_code"), notes: value("notes") };
+        const existingUtility = state.data.utility_accounts.find((saved) =>
+          saved.property_id === draftUtility.property_id &&
+          saved.holder === draftUtility.holder &&
+          normalizedKey(saved.kind) === normalizedKey(draftUtility.kind) &&
+          normalizedKey(saved.provider) === normalizedKey(draftUtility.provider) &&
+          normalizedKey(saved.contract_code) === normalizedKey(draftUtility.contract_code)
+        );
         const amount = Number(value("amount") || 0);
-        if (amount > 0) state.data.utility_bills.push({ id: newId(), utility_id: utility.id, property_id: utility.property_id, period: value("period"), due_date: value("due_date"), amount, status: value("bill_status") || "pending", document_name: "" });
-        await syncEntity("utility", utility, "insert");
-        finishMutation("Utenza salvata.");
+        if (existingUtility && amount <= 0) {
+          throw new Error("Questa utenza è già censita. Per aggiungere una bolletta, inserisci anche importo e periodo.");
+        }
+        const period = value("period");
+        if (existingUtility && state.data.utility_bills.some((bill) => bill.utility_id === existingUtility.id && String(bill.period || "").slice(0, 7) === period)) {
+          throw new Error("La bolletta di questo periodo è già presente per l’utenza selezionata.");
+        }
+        const utility = existingUtility || draftUtility;
+        const bill = amount > 0 ? { id: newId(), utility_id: utility.id, property_id: utility.property_id, period, due_date: value("due_date"), amount, status: value("bill_status") || "pending", document_name: "" } : null;
+        if (!existingUtility) await syncEntity("utility", utility, "insert");
+        if (bill) await syncEntity("utilityBill", bill, "insert");
+        if (!existingUtility) state.data.utility_accounts.push(utility);
+        if (bill) state.data.utility_bills.push(bill);
+        finishMutation(existingUtility ? "Bolletta aggiunta all’utenza esistente." : "Utenza salvata.");
         return;
       }
       if (type === "document") {
         const file = data.get("file");
         if (!(file instanceof File) || !file.name) throw new Error("Seleziona un file prima di caricare.");
         const documentItem = { id: newId(), property_id: value("property_id"), category: value("category"), name: file.name, visible_to_tenant: data.get("visible_to_tenant") === "on", uploaded_at: dateISO(), uploaded_by: state.sessionUser?.id || "admin", storage_path: "" };
+        assertNoDuplicate(state.data.documents, documentItem, (saved, next) =>
+          saved.property_id === next.property_id && normalizedKey(saved.category) === normalizedKey(next.category) && normalizedKey(saved.name) === normalizedKey(next.name),
+        "Esiste già un documento con questo nome e categoria per l’immobile. Rinomina il nuovo file se si tratta di una versione diversa.");
         if (supabaseClient && state.sessionUser) documentItem.storage_path = await uploadAdminDocument(file, documentItem);
-        state.data.documents.push(documentItem);
         await syncEntity("document", documentItem, "insert");
+        state.data.documents.push(documentItem);
         finishMutation("Documento archiviato.");
         return;
       }
       if (type === "payment") {
         const lease = getLease(value("lease_id"));
         const payment = { id: newId(), property_id: value("property_id"), lease_id: value("lease_id"), tenant_id: form.dataset.tenantId || lease?.tenant_ids?.[0] || null, period: value("period"), due_date: value("due_date"), amount_due: Number(value("amount_due")), amount_paid: value("status") === "paid" ? Number(value("amount_due")) : 0, paid_at: value("status") === "paid" ? dateISO() : null, status: value("status"), receipt_name: "" };
-        state.data.rent_payments.push(payment);
+        assertNoDuplicate(state.data.rent_payments, payment, (saved, next) => saved.lease_id === next.lease_id && String(saved.period || "").slice(0, 7) === String(next.period || "").slice(0, 7), "Per questo contratto il canone del mese è già registrato.");
         await syncEntity("payment", payment, "insert");
+        state.data.rent_payments.push(payment);
         finishMutation("Canone creato.");
         return;
       }
@@ -1519,11 +1665,20 @@
         if (!(file instanceof File) || !file.name) throw new Error("Seleziona la contabile prima di inviare.");
         const payment = state.data.rent_payments.find((item) => item.id === form.dataset.paymentId);
         if (!payment) throw new Error("Pagamento non trovato.");
-        payment.receipt_name = file.name;
-        payment.status = payment.status === "paid" ? "paid" : "pending";
-        payment.receipt_uploaded_at = dateISO();
-        if (supabaseClient && state.sessionUser) payment.receipt_path = await uploadPaymentProof(file, payment);
-        await syncEntity("payment", payment, "update");
+        const previousReceiptPath = payment.receipt_path;
+        const updatedPayment = {
+          ...payment,
+          receipt_name: file.name,
+          status: payment.status === "paid" ? "paid" : "pending",
+          receipt_uploaded_at: dateISO()
+        };
+        if (supabaseClient && state.sessionUser) updatedPayment.receipt_path = await uploadPaymentProof(file, updatedPayment);
+        await syncEntity("payment", updatedPayment, "update");
+        Object.assign(payment, updatedPayment);
+        if (previousReceiptPath && previousReceiptPath !== updatedPayment.receipt_path) {
+          try { await deleteStoragePaths([previousReceiptPath]); }
+          catch (error) { console.warn("La nuova contabile è salvata, ma la precedente non è stata rimossa.", error); }
+        }
         finishMutation("Contabile inviata all’amministratore.");
         return;
       }
@@ -1532,13 +1687,21 @@
         const tenantId = form.dataset.tenantId;
         const existing = state.data.tenant_permissions.find((item) => item.property_id === propertyId && item.tenant_id === tenantId);
         const permissions = { id: existing?.id || newId(), property_id: propertyId, tenant_id: tenantId, show_documents: data.get("show_documents") === "on", show_utilities: data.get("show_utilities") === "on", show_maintenance: data.get("show_maintenance") === "on", allow_payment_upload: data.get("allow_payment_upload") === "on", allow_utility_upload: data.get("allow_utility_upload") === "on" };
-        if (existing) Object.assign(existing, permissions); else state.data.tenant_permissions.push(permissions);
         await syncEntity("permissions", permissions, existing ? "update" : "insert");
+        if (existing) Object.assign(existing, permissions); else state.data.tenant_permissions.push(permissions);
         finishMutation("Permessi aggiornati.");
       }
     } catch (error) {
       console.error(error);
       toast(error.message || "Non è stato possibile completare l’operazione.", "error");
+    } finally {
+      if (form.isConnected) {
+        delete form.dataset.submitting;
+        submitButtons.forEach((button, index) => {
+          button.disabled = false;
+          button.textContent = submitLabels[index];
+        });
+      }
     }
   }
 
@@ -1620,7 +1783,70 @@
       finishMutation(message);
       return;
     }
-    throw new Error("Tipo di cancellazione non riconosciuto.");
+    const tables = {
+      lease: "leases",
+      payment: "rent_payments",
+      utility: "utility_accounts",
+      "utility-bill": "utility_bills",
+      mortgage: "mortgages",
+      financial: "financial_entries",
+      document: "documents",
+      maintenance: "maintenance_jobs",
+      provider: "service_providers",
+      permission: "property_tenant_permissions"
+    };
+    const item = getManagedRecord(kind, id);
+    const table = tables[kind];
+    if (!item || !table) throw new Error("Elemento non trovato o tipo di cancellazione non riconosciuto.");
+
+    let storedPaths = [];
+    if (kind === "payment") storedPaths = [item.receipt_path];
+    if (kind === "lease") storedPaths = state.data.rent_payments.filter((payment) => payment.lease_id === id).map((payment) => payment.receipt_path);
+    if (kind === "utility") storedPaths = state.data.utility_bills.filter((bill) => bill.utility_id === id).map((bill) => bill.document_path);
+    if (kind === "utility-bill") storedPaths = [item.document_path];
+    if (kind === "document") storedPaths = [item.storage_path];
+
+    if (supabaseClient && state.sessionUser) {
+      const { error } = await supabaseClient.from(table).delete().eq("id", id);
+      if (error) throw new Error(`Cancellazione non riuscita: ${error.message}`);
+    }
+    removeManagedRecordFromState(kind, id);
+    let message = `${labelsForDelete[kind] || "Elemento"} eliminato.`;
+    if (supabaseClient && state.sessionUser && storedPaths.some(Boolean)) {
+      try { await deleteStoragePaths(storedPaths); }
+      catch (error) { console.warn(error); message += " Il record è stato eliminato, ma un file privato potrebbe essere ancora nell’archivio."; }
+    }
+    finishMutation(message);
+  }
+
+  const labelsForDelete = {
+    lease: "Contratto", payment: "Canone", utility: "Utenza", "utility-bill": "Bolletta",
+    mortgage: "Mutuo", financial: "Movimento", document: "Documento", maintenance: "Intervento",
+    provider: "Manutentore", permission: "Permesso"
+  };
+
+  function removeManagedRecordFromState(kind, id) {
+    if (kind === "lease") {
+      state.data.leases = state.data.leases.filter((lease) => lease.id !== id);
+      state.data.rent_payments = state.data.rent_payments.filter((payment) => payment.lease_id !== id);
+      if (state.selectedTenantId && !getTenantLeases(state.selectedTenantId).length) state.selectedTenantId = null;
+      return;
+    }
+    if (kind === "payment") state.data.rent_payments = state.data.rent_payments.filter((payment) => payment.id !== id);
+    if (kind === "utility") {
+      state.data.utility_accounts = state.data.utility_accounts.filter((utility) => utility.id !== id);
+      state.data.utility_bills = state.data.utility_bills.filter((bill) => bill.utility_id !== id);
+    }
+    if (kind === "utility-bill") state.data.utility_bills = state.data.utility_bills.filter((bill) => bill.id !== id);
+    if (kind === "mortgage") state.data.mortgages = state.data.mortgages.filter((mortgage) => mortgage.id !== id);
+    if (kind === "financial") state.data.financial_entries = state.data.financial_entries.filter((entry) => entry.id !== id);
+    if (kind === "document") state.data.documents = state.data.documents.filter((document) => document.id !== id);
+    if (kind === "maintenance") state.data.maintenance_jobs = state.data.maintenance_jobs.filter((job) => job.id !== id);
+    if (kind === "provider") {
+      state.data.service_providers = state.data.service_providers.filter((provider) => provider.id !== id);
+      state.data.maintenance_jobs = state.data.maintenance_jobs.map((job) => job.provider_id === id ? { ...job, provider_id: null } : job);
+    }
+    if (kind === "permission") state.data.tenant_permissions = state.data.tenant_permissions.filter((permission) => permission.id !== id);
   }
 
   async function listStorageFolderPaths(folderPath) {
@@ -1648,7 +1874,7 @@
     const unique = [...new Set(paths.filter(Boolean))];
     for (let index = 0; index < unique.length; index += 100) {
       const { error } = await supabaseClient.storage.from("property-documents").remove(unique.slice(index, index + 100));
-      if (error) throw new Error(`Rimozione dei file non riuscita: ${error.message}. I dati gestionali non sono stati cancellati.`);
+      if (error) throw new Error(`Rimozione dei file non riuscita: ${error.message}. Il record può essere già stato cancellato; controlla l’archivio dei file.`);
     }
   }
 
@@ -1807,7 +2033,7 @@
     return data;
   }
 
-  async function syncTenantRelations(tenant, lease) {
+  async function syncTenantRelations(tenant, lease, permission = null) {
     const payload = { id: tenant.id, display_name: tenant.display_name, username: tenant.username, email: tenant.email, phone: tenant.phone, role: "tenant" };
     const profileResult = await supabaseClient.from("profiles").upsert(payload);
     if (profileResult.error) throw profileResult.error;
@@ -1817,9 +2043,9 @@
     if (leaseResult.error) throw leaseResult.error;
     const relationResult = await supabaseClient.from("lease_tenants").upsert({ lease_id: lease.id, tenant_id: tenant.id });
     if (relationResult.error) throw relationResult.error;
-    const permission = state.data.tenant_permissions.find((p) => p.tenant_id === tenant.id && p.property_id === lease.property_id);
-    if (permission) {
-      const result = await supabaseClient.from("property_tenant_permissions").upsert(permission);
+    const savedPermission = permission || state.data.tenant_permissions.find((p) => p.tenant_id === tenant.id && p.property_id === lease.property_id);
+    if (savedPermission) {
+      const result = await supabaseClient.from("property_tenant_permissions").upsert(savedPermission);
       if (result.error) throw result.error;
     }
   }
@@ -1878,8 +2104,8 @@
   }
 
   async function uploadPaymentProof(file, payment) {
-    const path = `tenant/${state.sessionUser.id}/${payment.id}/${Date.now()}-${safeFileName(file.name)}`;
-    const { error } = await supabaseClient.storage.from("property-documents").upload(path, file, { upsert: false });
+    const path = `tenant/${state.sessionUser.id}/${payment.id}/${safeFileName(file.name)}`;
+    const { error } = await supabaseClient.storage.from("property-documents").upload(path, file, { upsert: true });
     if (error) throw new Error(`Caricamento contabile non riuscito: ${error.message}`);
     return path;
   }
