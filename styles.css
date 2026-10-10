@@ -111,10 +111,10 @@ a { color: inherit; }
 .nav-button { display: flex; width: 100%; align-items: center; gap: 12px; padding: 11px 12px; border: 0; border-radius: 11px; color: #c8d9e2; background: transparent; font-weight: 650; text-align: left; transition: background .15s ease, color .15s ease; }
 .nav-button:hover { color: #fff; background: rgba(255,255,255,0.08); }
 .nav-button.active { color: var(--navy); background: #fff; box-shadow: 0 6px 18px rgba(3, 18, 29, 0.17); }
-.nav-icon { display: grid; width: 22px; place-items: center; color: currentColor; }
+.nav-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border: 1px solid rgba(255,255,255,.09); border-radius: 11px; color: currentColor; background: linear-gradient(145deg, rgba(255,255,255,.11), rgba(255,255,255,.035)); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
 .nav-icon .ui-icon { transition: transform .16s ease, color .16s ease; }
 .nav-button:hover .nav-icon .ui-icon { transform: translateY(-1px); }
-.nav-button.active .nav-icon .ui-icon { color: var(--teal); }
+.nav-button.active .nav-icon { border-color: #d5eee8; color: #087f73; background: linear-gradient(145deg, #e8f7f3, #d9efea); box-shadow: inset 0 1px 0 #fff, 0 3px 9px rgba(20,70,80,.08); }
 .sidebar-spacer { flex: 1; }
 .sidebar-mode { margin: 14px 4px; padding: 13px; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; background: rgba(255,255,255,0.06); }
 .sidebar-mode small { display: block; color: #8faab9; font-size: .71rem; }
@@ -145,8 +145,8 @@ a { color: inherit; }
 .kpi-card { min-height: 126px; padding: 17px; border: 1px solid rgba(220,228,234,.8); border-radius: var(--radius-md); background: var(--surface); box-shadow: 0 5px 16px rgba(18,48,71,.04); }
 .kpi-card.highlight { color: #fff; border: 0; background: linear-gradient(130deg, #17475f, #123047); }
 .kpi-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--ink-soft); font-size: .74rem; font-weight: 750; }
-.kpi-icon { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border-radius: 9px; color: #52768a; background: #edf4f7; }
-.kpi-icon .ui-icon { width: 17px; height: 17px; }
+.kpi-icon { display: grid; width: 36px; height: 36px; flex: 0 0 auto; place-items: center; border: 1px solid #e1edf0; border-radius: 12px; color: #376d80; background: linear-gradient(145deg, #f4fafb, #e8f1f5); box-shadow: inset 0 1px 0 #fff, 0 3px 8px rgba(18,48,71,.04); }
+.kpi-icon .ui-icon { width: 19px; height: 19px; stroke-width: 1.9; }
 .highlight .kpi-label { color: rgba(255,255,255,.72); }
 .highlight .kpi-icon { color: #fff; background: rgba(255,255,255,.13); }
 .kpi-value { margin-top: 18px; font-size: clamp(1.25rem, 2vw, 1.76rem); font-weight: 820; letter-spacing: -0.045em; }
@@ -165,8 +165,11 @@ a { color: inherit; }
 .property-row { display: grid; grid-template-columns: minmax(0,1fr) 120px 135px 118px minmax(96px,auto); align-items: center; gap: 12px; padding: 14px 20px; border-top: 1px solid #edf1f4; }
 .property-row:hover { background: #fbfcfd; }
 .property-title { display: flex; min-width: 0; align-items: center; gap: 11px; }
-.property-avatar { display: grid; width: 38px; height: 38px; flex: 0 0 auto; place-items: center; border-radius: 11px; color: #315f77; background: #e9f1f5; }
-.property-avatar .ui-icon { width: 19px; height: 19px; }
+button.property-title { padding: 0; border: 0; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+button.property-title:hover strong { color: var(--teal); }
+.property-title > span:not(.property-avatar) { min-width: 0; }
+.property-avatar { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border: 1px solid #deeaed; border-radius: 13px; color: #28677a; background: linear-gradient(145deg, #f4f9fb, #e2eff2); box-shadow: inset 0 1px 0 #fff, 0 3px 8px rgba(18,48,71,.045); }
+.property-avatar .ui-icon { width: 21px; height: 21px; stroke-width: 1.9; }
 .property-title strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .87rem; }
 .property-title > span:not(.property-avatar) > span { display: block; overflow: hidden; margin-top: 3px; color: var(--ink-soft); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
 .row-number { font-size: .83rem; font-weight: 720; text-align: right; }
