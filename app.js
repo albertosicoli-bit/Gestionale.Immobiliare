@@ -774,12 +774,17 @@
 
   function navButton(item) {
     const active = state.activeView === item.id || (state.activeView === "tenant" && item.id === "people");
-    return `<button class="nav-button ${active ? "active" : ""}" data-action="navigate" data-view="${item.id}"><span class="nav-icon">${uiIcon(item.icon, 19)}</span>${esc(item.label)}</button>`;
+    return `<button class="nav-button ${active ? "active" : ""}" data-action="navigate" data-view="${item.id}"><span class="nav-icon">${navGraphicIcon(item.icon)}</span>${esc(item.label)}</button>`;
+  }
+
+  function navGraphicIcon(name) {
+    const graphic = { dashboard: "dashboard", building: "building", wallet: "wallet", wrench: "maintenance", maintenance: "maintenance", users: "people", people: "people", settings: "settings" }[name] || "dashboard";
+    return `<svg class="nav-3d-icon" aria-hidden="true" focusable="false"><use href="./assets/icons-3d.svg#icon-${graphic}"></use></svg>`;
   }
 
   function mobileNavButton(item) {
     const active = state.activeView === item.id || (state.activeView === "tenant" && item.id === "people");
-    return `<button class="${active ? "active" : ""}" data-action="navigate" data-view="${item.id}"><span>${uiIcon(item.icon, 20)}</span>${esc(item.label)}</button>`;
+    return `<button class="${active ? "active" : ""}" data-action="navigate" data-view="${item.id}"><span>${navGraphicIcon(item.icon)}</span>${esc(item.label)}</button>`;
   }
 
   function pageMeta() {
@@ -866,7 +871,8 @@
   }
 
   function kpiCard(label, value, note, iconName, extraClass = "") {
-    return `<article class="kpi-card ${extraClass}"><div class="kpi-label"><span>${esc(label)}</span><span class="kpi-icon">${uiIcon(iconName, 18)}</span></div><div class="kpi-value">${esc(value)}</div><div class="kpi-note">${esc(note)}</div></article>`;
+    const graphic = iconName === "building" ? "building" : iconName === "arrowDownRight" ? "maintenance" : iconName === "pieChart" ? "dashboard" : "wallet";
+    return `<article class="kpi-card ${extraClass}"><div class="kpi-label"><span>${esc(label)}</span><span class="kpi-icon">${navGraphicIcon(graphic)}</span></div><div class="kpi-value">${esc(value)}</div><div class="kpi-note">${esc(note)}</div></article>`;
   }
 
   function occupancyPanel(properties, rented, vacant) {
@@ -879,7 +885,7 @@
   function propertyRow(property) {
     const tenants = getTenantsForProperty(property.id);
     return `<article class="property-row">
-      <button class="property-title" data-action="open-property" data-property-id="${property.id}"><span class="property-avatar">${uiIcon("building", 18)}</span><span><strong>${esc(property.name)}</strong><span>${esc(property.address)}, ${esc(property.city)}</span></span></button>
+      <button class="property-title" data-action="open-property" data-property-id="${property.id}"><span class="property-avatar">${navGraphicIcon("building")}</span><span><strong>${esc(property.name)}</strong><span>${esc(property.address)}, ${esc(property.city)}</span></span></button>
       <span class="tenant-col">${badge(property.status)}</span>
       <span class="rent-col row-number">${property.status === "rented" ? money(propertyRent(property.id)) : "—"}</span>
       <span class="row-muted">${tenants.length ? esc(tenants.map((tenant) => tenant.display_name.split(" ")[0]).join(", ")) : "Nessun inquilino"}</span>

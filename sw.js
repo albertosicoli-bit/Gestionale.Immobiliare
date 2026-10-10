@@ -1,4 +1,4 @@
-const CACHE_NAME = "property-manager-v14";
+const CACHE_NAME = "property-manager-v15";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -7,7 +7,8 @@ const APP_SHELL = [
   "./excel-import.js",
   "./config.js",
   "./manifest.webmanifest",
-  "./assets/icon.svg"
+  "./assets/icon.svg",
+  "./assets/icons-3d.svg"
 ];
 
 self.addEventListener("install", (event) => {

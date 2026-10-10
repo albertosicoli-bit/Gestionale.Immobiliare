@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#315d78"/><stop offset=".52" stop-color="#173b54"/><stop offset="1" stop-color="#0b2438"/></linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8ce0cb"/><stop offset=".45" stop-color="#35b59f"/><stop offset="1" stop-color="#08786f"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#ffe69a"/><stop offset=".48" stop-color="#f1be4e"/><stop offset="1" stop-color="#ce8522"/></linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e2fbf5"/><stop offset=".45" stop-color="#79cfc5"/><stop offset="1" stop-color="#2b8790"/></linearGradient>
+    <linearGradient id="silver" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#fff"/><stop offset=".5" stop-color="#d4e2e8"/><stop offset="1" stop-color="#8aa5b2"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-25%" width="170%" height="175%"><feDropShadow dx="0" dy="2.3" stdDeviation="1.7" flood-color="#102c40" flood-opacity=".25"/></filter>
+  </defs>
+  <symbol id="icon-dashboard" viewBox="0 0 48 48">
+    <g filter="url(#shadow)" stroke="#15364b" stroke-width="1.25" stroke-linejoin="round">
+      <path fill="#b7d2d9" d="m8 16 15-8 17 8-15 9z"/><path fill="#6e94a2" d="m8 16 17 9v17L8 33z"/><path fill="url(#navy)" d="m25 25 15-9v17l-15 9z"/>
+      <path fill="url(#gold)" d="m14 16 9-5 10 5-9 5z"/><path fill="url(#teal)" d="m11 23 10 5v7l-10-5z"/><path fill="url(#glass)" d="m27 28 9-5v7l-9 5z"/><path fill="url(#silver)" d="m27 37 9-5v3l-9 5z"/>
+    </g><path d="m13 18 9 5" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.2"/>
+  </symbol>
+  <symbol id="icon-building" viewBox="0 0 48 48">
+    <g filter="url(#shadow)" stroke="#13344a" stroke-width="1.2" stroke-linejoin="round">
+      <path fill="#9dbbc5" d="m7 16 18-10 17 10-18 10z"/><path fill="#6c929f" d="M7 16v24l17 7V26z"/><path fill="url(#navy)" d="M24 26 42 16v24l-18 7z"/>
+      <path fill="url(#silver)" d="m14 15 11-6 10 6-11 6z"/><path fill="url(#glass)" d="M11 22v5l5 2v-5zM11 32v5l5 2v-5z"/><path fill="url(#teal)" d="M27 29v-5l5-3v5zM35 25v-5l4-2v5zM27 39v-5l5-3v5zM35 35v-5l4-2v5z"/><path fill="url(#gold)" d="m19 12 6-3 5 3-6 3z"/>
+    </g>
+  </symbol>
+  <symbol id="icon-wallet" viewBox="0 0 48 48">
+    <g filter="url(#shadow)" stroke="#15364b" stroke-width="1.25" stroke-linejoin="round">
+      <path fill="#8eabb5" d="m7 16 23-9 12 7-24 10z"/><path fill="#537989" d="M7 16v22l11 7V24z"/><path fill="url(#navy)" d="m18 24 24-10v22L18 45z"/><path fill="url(#teal)" d="m11 19 22-9 5 3-22 9z"/><path fill="url(#gold)" d="m26 23 16-6v11l-16 6z"/><path fill="#ffe7a3" d="m31 25 7-2v5l-7 2z"/><circle cx="33" cy="27.5" r="1.2" fill="#915d1d" stroke="none"/>
+    </g>
+  </symbol>
+  <symbol id="icon-maintenance" viewBox="0 0 48 48">
+    <g filter="url(#shadow)" stroke="#15364b" stroke-width="1.2" stroke-linejoin="round">
+      <path fill="#8ca9b4" d="m29 9 7 5-8 9-5-5z"/><path fill="url(#navy)" d="m28 17 5 5-18 19a4 4 0 0 1-6-6z"/><path fill="url(#silver)" d="m26 20 4 4-16 17a2 2 0 0 1-3-3z"/><path fill="url(#gold)" d="M28 8a10 10 0 0 1 12 12l-6-5-5 5-5-5 5-5z"/><path fill="url(#teal)" d="m30 14 3-3 6 5-3 3z"/>
+    </g>
+  </symbol>
+  <symbol id="icon-people" viewBox="0 0 48 48">
+    <g filter="url(#shadow)" stroke="#15364b" stroke-width="1.15" stroke-linejoin="round">
+      <path fill="#708f9e" d="m6 34 13-7 11 6-13 8z"/><path fill="url(#navy)" d="m17 41 13-8v7l-13 7z"/><path fill="url(#teal)" d="m5 34 13-8v7L5 41z"/>
+      <path fill="url(#silver)" d="m13 16 8-5 8 5-8 5z"/><path fill="#8daeba" d="M13 16v8l8 5v-8z"/><path fill="url(#navy)" d="m21 21 8-5v8l-8 5z"/><path fill="url(#gold)" d="m25 20 7-4 7 4-7 4z"/><path fill="#c39040" d="M25 20v7l7 4v-7z"/><path fill="url(#teal)" d="m32 24 7-4v7l-7 4z"/>
+      <path fill="url(#glass)" d="M10 33a8 8 0 0 1 14-5l-4 8-8 2z"/><path fill="#f6d992" d="M26 33a7 7 0 0 1 12-4l-4 7-7 1z"/>
+    </g>
+  </symbol>
+  <symbol id="icon-settings" viewBox="0 0 48 48">
+    <g filter="url(#shadow)" stroke="#15364b" stroke-width="1.2" stroke-linejoin="round">
+      <path fill="#7898a7" d="m9 20 5-8 5 2 4-3 1-5h10l1 5 4 3 5-2 5 8-4 4v5l4 4-5 8-5-2-4 3-1 5H24l-1-5-4-3-5 2-5-8 4-4v-5z" transform="translate(-2 -2) scale(.92)"/>
+      <path fill="url(#teal)" d="m11 20 5-7 4 2 4-3 1-5h9l1 5 4 3 4-2 5 7-4 4v5l4 4-5 7-4-2-4 3-1 5h-9l-1-5-4-3-4 2-5-7 4-4v-5z"/>
+      <circle cx="29.5" cy="26.5" r="8.2" fill="url(#navy)"/><circle cx="29.5" cy="26.5" r="3.5" fill="url(#gold)"/>
+    </g>
+  </symbol>
+</svg>
