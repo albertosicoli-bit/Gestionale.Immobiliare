@@ -1169,10 +1169,6 @@
     return row?.values?.[header] ?? "";
   }
 
-  function excelDecisionYes(value) {
-    return ["si", "s", "yes", "y", "importa"].includes(importText(value));
-  }
-
   function importNumber(value) {
     if (typeof value === "number") return Number.isFinite(value) ? value : null;
     if (value === null || value === undefined || String(value).trim() === "") return null;
@@ -1249,6 +1245,56 @@
     row.item = item;
   }
 
+  function canSelectExcelImportRow(row) {
+    return !row.imported && !row.alreadyPresent && row.status !== "Già presente" && row.status !== "Duplicata nel file";
+  }
+
+  function excelImportRows(plan, kind) {
+    return plan?.[{ property: "properties", account: "accounts", bill: "bills" }[kind]] || [];
+  }
+
+  function setExcelImportRowSelection(kind, index, selected) {
+    const plan = pendingExcelImport;
+    const row = excelImportRows(plan, kind)[index];
+    if (!row || !canSelectExcelImportRow(row)) return;
+    row.selected = Boolean(selected);
+
+    if (row.selected && kind === "account" && row.ready) {
+      const parentProperty = plan.properties.find((property) => property.ready && property.item?.id === row.item?.property_id);
+      if (parentProperty) parentProperty.selected = true;
+    }
+    if (row.selected && kind === "bill" && row.ready) {
+      const parentAccount = plan.accounts.find((account) => account.ready && account.item?.id === row.item?.utility_id);
+      if (parentAccount) setExcelImportRowSelection("account", plan.accounts.indexOf(parentAccount), true);
+    }
+
+    if (!row.selected && kind === "property" && row.item?.id) {
+      plan.accounts.forEach((account) => {
+        if (account.item?.property_id === row.item.id) account.selected = false;
+      });
+      plan.bills.forEach((bill) => {
+        if (bill.item?.property_id === row.item.id) bill.selected = false;
+      });
+    }
+    if (!row.selected && kind === "account" && row.item?.id) {
+      plan.bills.forEach((bill) => {
+        if (bill.item?.utility_id === row.item.id) bill.selected = false;
+      });
+    }
+  }
+
+  function setExcelImportGroupSelection(kind, selected) {
+    const rows = excelImportRows(pendingExcelImport, kind);
+    if (selected) {
+      rows.forEach((row, index) => {
+        if (row.ready) setExcelImportRowSelection(kind, index, true);
+      });
+    } else {
+      rows.forEach((row, index) => setExcelImportRowSelection(kind, index, false));
+    }
+    renderExcelImportDialog("", true);
+  }
+
   function findImportProperty(name, plan) {
     const needle = importText(name);
     if (!needle) return { property: null, issue: "Manca il nome dell’immobile candidato." };
@@ -1276,10 +1322,6 @@
       }
       if (row.failure) {
         markImportRow(row, "Errore", row.failure);
-        continue;
-      }
-      if (!excelDecisionYes(excelValue(row, "Decisione importazione"))) {
-        markImportRow(row, "Non selezionata", "Imposta «Sì» nella colonna Decisione importazione per includerla.");
         continue;
       }
       const name = String(excelValue(row, "Nome · properties.name") || "").trim();
@@ -1336,10 +1378,6 @@
       }
       if (row.failure) {
         markImportRow(row, "Errore", row.failure);
-        continue;
-      }
-      if (!excelDecisionYes(excelValue(row, "Decisione importazione"))) {
-        markImportRow(row, "Non selezionata", "Imposta «Sì» nella colonna Decisione importazione per includerla.");
         continue;
       }
       const propertyName = excelValue(row, "Immobile candidato") || excelValue(row, "Immobile in Excel");
@@ -1407,10 +1445,6 @@
         markImportRow(row, "Errore", row.failure);
         continue;
       }
-      if (!excelDecisionYes(excelValue(row, "Decisione importazione"))) {
-        markImportRow(row, "Non selezionata", "Imposta «Sì» nella colonna Decisione importazione per includerla.");
-        continue;
-      }
       const propertyName = excelValue(row, "Immobile candidato") || excelValue(row, "Immobile in Excel");
       const match = findImportProperty(propertyName, plan);
       const kind = String(excelValue(row, "Utenza") || "").trim();
@@ -1473,26 +1507,45 @@
   function renderExcelImportGroup(title, kind, rows) {
     const visible = rows;
     if (!visible.length) return "";
-    return `<section class="excel-import-group"><h3>${esc(title)}</h3><div class="excel-import-table"><table><thead><tr><th>Riga</th><th>Elemento</th><th>Esito</th></tr></thead><tbody>${visible.map((row) => {
-      const statusClass = row.ready ? "ready" : row.imported ? "imported" : row.status === "Errore" || row.status === "Da correggere" ? "error" : "";
+    const readyRows = rows.filter((row) => row.ready);
+    const selectedCount = rows.filter((row) => row.selected).length;
+    const readySelectedCount = readyRows.filter((row) => row.selected).length;
+    const allReadySelected = readyRows.length > 0 && readySelectedCount === readyRows.length;
+    return `<section class="excel-import-group"><div class="excel-import-group-head"><div><h3>${esc(title)}</h3><small>${selectedCount} selezionate · ${readySelectedCount} complete e pronte</small></div>${readyRows.length ? `<button class="button secondary small" type="button" data-action="set-excel-import-group" data-import-type="${kind}" data-selected="${allReadySelected ? "false" : "true"}">${allReadySelected ? "Deseleziona pronte" : "Seleziona pronte"}</button>` : ""}</div><div class="excel-import-table"><table><thead><tr><th>Importa</th><th>Riga</th><th>Elemento</th><th>Esito</th></tr></thead><tbody>${visible.map((row, index) => {
+      const statusClass = row.ready ? "ready" : row.imported ? "imported" : row.status === "Errore" || row.status === "Da correggere" || row.status === "Da completare" ? "error" : "";
       const sourceLine = excelValue(row, "Riga Excel") || row.excelRow;
-      return `<tr><td>${esc(sourceLine)}</td><td><strong>${esc(excelImportRowTitle(kind, row))}</strong><br><small>${esc(row.reason || "Completa i dati e imposta Sì nel foglio.")}</small></td><td><span class="excel-import-state ${statusClass}">${esc(row.status)}</span></td></tr>`;
+      const selectable = canSelectExcelImportRow(row) && !excelImporting;
+      const rowClass = row.selected ? " class=\"selected\"" : "";
+      return `<tr${rowClass}><td class="excel-import-select-cell"><input type="checkbox" data-input="excel-import-selection" data-import-type="${kind}" data-import-index="${index}" aria-label="Seleziona ${esc(excelImportRowTitle(kind, row))}" ${row.selected ? "checked" : ""} ${selectable ? "" : "disabled"}/></td><td>${esc(sourceLine)}</td><td><strong>${esc(excelImportRowTitle(kind, row))}</strong><br><small>${esc(row.reason || (row.ready ? "Riga completa e pronta." : "Riga da verificare."))}</small></td><td><span class="excel-import-state ${statusClass}">${esc(row.status)}</span></td></tr>`;
     }).join("")}</tbody></table></div></section>`;
   }
 
-  function renderExcelImportDialog(errorMessage = "") {
+  function renderExcelImportDialog(errorMessage = "", preserveScroll = false, focusSelection = null) {
     const plan = pendingExcelImport;
+    const previousBodyScroll = preserveScroll ? dialog.querySelector(".dialog-body")?.scrollTop || 0 : 0;
+    const previousTableScrolls = preserveScroll ? [...dialog.querySelectorAll(".excel-import-table")].map((table) => table.scrollTop) : [];
     const groups = plan ? [
       renderExcelImportGroup("Immobili", "property", plan.properties),
       renderExcelImportGroup("Utenze", "account", plan.accounts),
       renderExcelImportGroup("Bollette", "bill", plan.bills)
     ].filter(Boolean).join("") : "";
-    const readyCount = plan ? [...plan.properties, ...plan.accounts, ...plan.bills].filter((row) => row.ready).length : 0;
-    const body = `<div class="stack"><p>Carica il file <strong>Verifica-immobili-Proprieta-Papa.xlsx</strong>. Il riepilogo non salva nulla: verranno proposte solo le righe contrassegnate <strong>Sì</strong> e complete.</p>${errorMessage ? `<div class="callout danger">${esc(errorMessage)}</div>` : ""}<label class="file-input"><input type="file" accept=".xlsx" data-input="excel-import-file" ${excelImporting ? "disabled" : ""}/><span><strong>${plan ? "Seleziona un altro file Excel" : "Seleziona file Excel"}</strong><span>${plan ? esc(plan.fileName) : "Solo file .xlsx, massimo 20 MB."}</span></span></label>${plan ? `<div class="excel-import-summary"><div><strong>${plan.properties.filter((row) => row.ready).length}</strong><span>immobili pronti</span></div><div><strong>${plan.accounts.filter((row) => row.ready).length}</strong><span>utenze pronte</span></div><div><strong>${plan.bills.filter((row) => row.ready).length}</strong><span>bollette pronte</span></div></div><div class="callout warning">I duplicati vengono saltati. I campi vuoti, le associazioni ambigue e le righe non marcate Sì restano fuori. Il file non contiene dati sufficienti per creare contratti, inquilini, spese aggregate o quote.</div><div class="excel-import-groups">${groups}</div>${plan.failures?.length ? `<div class="callout danger">${esc(plan.failures.length)} righe non sono state salvate. Controlla l’esito e riprova dopo aver corretto i dati o la connessione.</div>` : ""}` : ""}</div>`;
+    const readyCount = plan ? [...plan.properties, ...plan.accounts, ...plan.bills].filter((row) => row.ready && row.selected).length : 0;
+    const selectedIncompleteCount = plan ? [...plan.properties, ...plan.accounts, ...plan.bills].filter((row) => row.selected && !row.ready).length : 0;
+    const body = `<div class="stack"><p>Carica il file Excel: dopo la lettura puoi spuntare nell’anteprima le righe che vuoi importare. Il riepilogo non salva nulla.</p>${errorMessage ? `<div class="callout danger">${esc(errorMessage)}</div>` : ""}<label class="file-input"><input type="file" accept=".xlsx" data-input="excel-import-file" ${excelImporting ? "disabled" : ""}/><span><strong>${plan ? "Seleziona un altro file Excel" : "Seleziona file Excel"}</strong><span>${plan ? esc(plan.fileName) : "Solo file .xlsx, massimo 20 MB."}</span></span></label>${plan ? `<div class="excel-import-summary"><div><strong>${plan.properties.filter((row) => row.selected).length}</strong><span>immobili selezionati</span></div><div><strong>${plan.accounts.filter((row) => row.selected).length}</strong><span>utenze selezionate</span></div><div><strong>${plan.bills.filter((row) => row.selected).length}</strong><span>bollette selezionate</span></div></div><div class="callout warning">Spunta le righe che vuoi importare. Verranno caricate solo quelle complete e selezionate; le righe incomplete possono essere spuntate, ma vanno corrette prima nel file Excel. ${selectedIncompleteCount ? `<strong>${selectedIncompleteCount} righe selezionate sono incomplete:</strong> leggi il motivo indicato accanto a ciascuna e correggilo nel file prima di ricaricarlo.` : ""} I duplicati vengono esclusi. Se selezioni un’utenza o una bolletta che richiede una nuova scheda collegata, l’immobile o l’utenza necessari vengono selezionati automaticamente. Contratti, inquilini, spese aggregate e quote non sono importabili da questo file.</div><div class="excel-import-groups">${groups}</div>${plan.failures?.length ? `<div class="callout danger">${esc(plan.failures.length)} righe non sono state salvate. Controlla l’esito e riprova dopo aver corretto i dati o la connessione.</div>` : ""}` : ""}</div>`;
     const closeButton = `<button class="button secondary" type="button" data-action="close-dialog" ${excelImporting ? "disabled" : ""}>Chiudi</button>`;
-    const importButton = plan ? `<button class="button" type="button" data-action="commit-excel-import" ${readyCount && !excelImporting ? "" : "disabled"}>${excelImporting ? "Salvataggio…" : "Importa " + readyCount + " righe"}</button>` : "";
+    const importButton = plan ? `<button class="button" type="button" data-action="commit-excel-import" ${readyCount && !excelImporting ? "" : "disabled"}>${excelImporting ? "Salvataggio…" : "Importa " + readyCount + " righe selezionate"}</button>` : "";
     const recheckButton = plan?.failures?.length && !excelImporting ? `<button class="button secondary" type="button" data-action="recheck-excel-import">Rivaluta le righe con errore</button>` : "";
     openDialog(dialogTemplate("Importa da Excel", plan ? "Controlla i dati prima di scriverli nel database." : "Seleziona il file rielaborato per vedere l’anteprima.", body, closeButton + recheckButton + importButton));
+    if (preserveScroll) {
+      const dialogBody = dialog.querySelector(".dialog-body");
+      if (dialogBody) dialogBody.scrollTop = previousBodyScroll;
+      dialog.querySelectorAll(".excel-import-table").forEach((table, index) => {
+        table.scrollTop = previousTableScrolls[index] || 0;
+      });
+    }
+    if (focusSelection) {
+      dialog.querySelector(`[data-input="excel-import-selection"][data-import-type="${focusSelection.kind}"][data-import-index="${focusSelection.index}"]`)?.focus({ preventScroll: true });
+    }
   }
 
   function openExcelImportDialog() {
@@ -1511,9 +1564,9 @@
       const parsed = await window.PropertyExcelImport.read(file);
       pendingExcelImport = {
         fileName: parsed.fileName,
-        properties: parsed.properties.map((row) => ({ ...row, id: "", imported: false, failure: "" })),
-        accounts: parsed.accounts.map((row) => ({ ...row, id: "", imported: false, failure: "" })),
-        bills: parsed.bills.map((row) => ({ ...row, id: "", imported: false, failure: "" })),
+        properties: parsed.properties.map((row) => ({ ...row, id: "", imported: false, failure: "", selected: false })),
+        accounts: parsed.accounts.map((row) => ({ ...row, id: "", imported: false, failure: "", selected: false })),
+        bills: parsed.bills.map((row) => ({ ...row, id: "", imported: false, failure: "", selected: false })),
         failures: []
       };
       for (const row of pendingExcelImport.properties) {
@@ -1554,7 +1607,7 @@
       ["utilityBill", plan.bills]
     ];
     for (const [type, rows] of groups) {
-      for (const row of rows.filter((item) => item.ready)) {
+      for (const row of rows.filter((item) => item.ready && item.selected)) {
         try {
           await syncEntity(type, row.item, "insert");
           if (type === "property") state.data.properties.push(row.item);
@@ -1858,6 +1911,10 @@
     if (!target) return;
     const action = target.dataset.action;
     if (action === "open-excel-import") return openExcelImportDialog();
+    if (action === "set-excel-import-group") {
+      setExcelImportGroupSelection(target.dataset.importType, target.dataset.selected === "true");
+      return;
+    }
     if (action === "commit-excel-import") return commitExcelImport();
     if (action === "recheck-excel-import") return recheckExcelImport();
     if (action === "forgot-password") {
@@ -1962,6 +2019,13 @@
       const file = event.target.files?.[0];
       event.target.value = "";
       void readExcelImportFile(file);
+      return;
+    }
+    if (event.type === "change" && event.target.dataset.input === "excel-import-selection") {
+      const kind = event.target.dataset.importType;
+      const index = Number(event.target.dataset.importIndex);
+      setExcelImportRowSelection(kind, index, event.target.checked);
+      renderExcelImportDialog("", true, { kind, index });
       return;
     }
     if (event.target.dataset.input === "delete-confirmation" || event.target.dataset.input === "delete-confirmation-check") {

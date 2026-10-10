@@ -335,11 +335,17 @@ tr.clickable:hover td { background: #fbfcfd; }
 .file-input strong { display: block; color: var(--navy); font-size: .8rem; }
 .file-input span { display: block; margin-top: 4px; font-size: .7rem; }
 .excel-import-groups { display: grid; gap: 16px; }
-.excel-import-group h3 { margin: 0 0 8px; font-size: .82rem; }
+.excel-import-group-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.excel-import-group-head h3 { margin: 0; font-size: .82rem; }
+.excel-import-group-head small { display: block; margin-top: 3px; color: var(--ink-soft); font-size: .66rem; }
 .excel-import-table { max-height: 205px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
-.excel-import-table table { width: 100%; border-collapse: collapse; font-size: .7rem; }
+.excel-import-table table { width: 100%; min-width: 550px; border-collapse: collapse; font-size: .7rem; }
 .excel-import-table th, .excel-import-table td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 .excel-import-table th { position: sticky; top: 0; z-index: 1; color: var(--ink-soft); background: #f4f7f9; font-size: .64rem; }
+.excel-import-table th:first-child, .excel-import-select-cell { width: 58px; text-align: center !important; }
+.excel-import-select-cell input[type="checkbox"] { width: 17px; height: 17px; margin: 1px; accent-color: var(--teal); cursor: pointer; }
+.excel-import-select-cell input[type="checkbox"]:disabled { cursor: not-allowed; }
+.excel-import-table tr.selected td { background: #f0faf7; }
 .excel-import-table tr:last-child td { border-bottom: 0; }
 .excel-import-state { display: inline-block; white-space: nowrap; padding: 3px 7px; border-radius: 999px; color: #536a79; background: #edf2f5; font-size: .63rem; font-weight: 750; }
 .excel-import-state.ready { color: #0a7466; background: #e3f5f0; }

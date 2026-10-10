@@ -39,16 +39,16 @@
     const properties = readRows(workbook, "Import immobili", 4, [
       "Riga Excel", "Nome · properties.name", "Indirizzo · properties.address", "Comune · properties.city",
       "CAP · properties.postal_code", "Tipologia · properties.type", "Stato · properties.status",
-      "Valore stimato € · private_details", "Note admin · private_details.notes", "Decisione importazione"
+      "Valore stimato € · private_details", "Note admin · private_details.notes"
     ]);
     const accounts = readRows(workbook, "Utenze e bollette", 4, [
       "Immobile candidato", "Utenza · kind", "Fornitore", "Codice cliente", "Codice POD/servizio",
       "Codice contratto candidato", "Intestatario · holder", "Riaddebito inquilino",
-      "Note candidate per la piattaforma", "Decisione importazione"
+      "Note candidate per la piattaforma"
     ]);
     const bills = readRows(workbook, "Utenze e bollette", 29, [
       "Immobile candidato", "Utenza", "Fornitore", "Periodo candidato", "Importo €",
-      "Stato · utility_bills.status", "Scadenza · due_date", "Collegamento utenza", "Decisione importazione"
+      "Stato · utility_bills.status", "Scadenza · due_date", "Collegamento utenza"
     ]);
     return { fileName: file.name, properties, accounts, bills };
   }
