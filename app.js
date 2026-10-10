@@ -1329,14 +1329,8 @@
       const city = String(excelValue(row, "Comune · properties.city") || "").trim();
       const type = String(excelValue(row, "Tipologia · properties.type") || "").trim();
       const status = importPropertyStatus(excelValue(row, "Stato · properties.status"));
-      const missing = [];
-      if (!name) missing.push("nome");
-      if (!address) missing.push("indirizzo");
-      if (!city) missing.push("comune");
-      if (!type) missing.push("tipologia");
-      if (!status) missing.push("stato valido");
-      if (missing.length) {
-        markImportRow(row, "Da completare", "Manca: " + missing.join(", ") + ".");
+      if (!name) {
+        markImportRow(row, "Da correggere", "Manca il nome dell’immobile, necessario per riconoscerlo nella piattaforma.");
         continue;
       }
       const estimatedRaw = excelValue(row, "Valore stimato € · private_details");
@@ -1347,9 +1341,9 @@
       }
       const item = {
         id: row.id || (row.id = newId()),
-        name, address, city,
+        name, address: address || "Da completare", city: city || "Da completare",
         postal_code: String(excelValue(row, "CAP · properties.postal_code") || "").trim(),
-        type, status,
+        type: type || "Appartamento", status: status || "vacant",
         estimated_value: estimated || 0,
         notes: String(excelValue(row, "Note admin · private_details.notes") || "").trim()
       };
@@ -1363,7 +1357,8 @@
         continue;
       }
       filePropertyKeys.add(key);
-      markImportRow(row, "Pronta", "", true, item);
+      const propertyNeedsCompletion = !address || !city || !type || !status;
+      markImportRow(row, propertyNeedsCompletion ? "Importabile · da completare" : "Pronta", propertyNeedsCompletion ? "La scheda verrà creata con campi provvisori: aprila nella piattaforma e completa indirizzo, comune, tipologia e stato." : "", true, item);
     }
 
     const savedAccounts = [...state.data.utility_accounts];
@@ -1394,7 +1389,6 @@
       const missing = [];
       if (!match.property) missing.push(match.issue);
       if (!kind) missing.push("tipo utenza");
-      if (!["owner", "tenant"].includes(holder)) missing.push("intestatario (owner/tenant)");
       if (rechargedValue === null) missing.push("riaddebito (TRUE/FALSE)");
       if (missing.length) {
         markImportRow(row, "Da completare", missing.join(" "));
@@ -1414,8 +1408,8 @@
         id: row.id || (row.id = newId()),
         property_id: match.property.id,
         kind, provider: provider || null,
-        holder,
-        recharged_to_tenant: rechargedValue,
+        holder: ["owner", "tenant"].includes(holder) ? holder : "owner",
+        recharged_to_tenant: rechargedValue ?? false,
         contract_code: contractCode || null,
         notes: noteParts.join(" · ") || null
       };
@@ -1424,7 +1418,8 @@
         continue;
       }
       savedAccounts.push(item);
-      markImportRow(row, "Pronta", "", true, item);
+      const accountNeedsCompletion = !["owner", "tenant"].includes(holder) || rechargedValue === null;
+      markImportRow(row, accountNeedsCompletion ? "Importabile · da completare" : "Pronta", accountNeedsCompletion ? "Valori provvisori: intestatario proprietario e nessun riaddebito. Verifica e completa la scheda dalla piattaforma." : "", true, item);
     }
 
     const savedBills = [...state.data.utility_bills];
@@ -1531,7 +1526,7 @@
     ].filter(Boolean).join("") : "";
     const readyCount = plan ? [...plan.properties, ...plan.accounts, ...plan.bills].filter((row) => row.ready && row.selected).length : 0;
     const selectedIncompleteCount = plan ? [...plan.properties, ...plan.accounts, ...plan.bills].filter((row) => row.selected && !row.ready).length : 0;
-    const body = `<div class="stack"><p>Carica il file Excel: dopo la lettura puoi spuntare nell’anteprima le righe che vuoi importare. Il riepilogo non salva nulla.</p>${errorMessage ? `<div class="callout danger">${esc(errorMessage)}</div>` : ""}<label class="file-input"><input type="file" accept=".xlsx" data-input="excel-import-file" ${excelImporting ? "disabled" : ""}/><span><strong>${plan ? "Seleziona un altro file Excel" : "Seleziona file Excel"}</strong><span>${plan ? esc(plan.fileName) : "Solo file .xlsx, massimo 20 MB."}</span></span></label>${plan ? `<div class="excel-import-summary"><div><strong>${plan.properties.filter((row) => row.selected).length}</strong><span>immobili selezionati</span></div><div><strong>${plan.accounts.filter((row) => row.selected).length}</strong><span>utenze selezionate</span></div><div><strong>${plan.bills.filter((row) => row.selected).length}</strong><span>bollette selezionate</span></div></div><div class="callout warning">Spunta le righe che vuoi importare. Verranno caricate solo quelle complete e selezionate; le righe incomplete possono essere spuntate, ma vanno corrette prima nel file Excel. ${selectedIncompleteCount ? `<strong>${selectedIncompleteCount} righe selezionate sono incomplete:</strong> leggi il motivo indicato accanto a ciascuna e correggilo nel file prima di ricaricarlo.` : ""} I duplicati vengono esclusi. Se selezioni un’utenza o una bolletta che richiede una nuova scheda collegata, l’immobile o l’utenza necessari vengono selezionati automaticamente. Contratti, inquilini, spese aggregate e quote non sono importabili da questo file.</div><div class="excel-import-groups">${groups}</div>${plan.failures?.length ? `<div class="callout danger">${esc(plan.failures.length)} righe non sono state salvate. Controlla l’esito e riprova dopo aver corretto i dati o la connessione.</div>` : ""}` : ""}</div>`;
+    const body = `<div class="stack"><p>Carica il file Excel: dopo la lettura puoi spuntare nell’anteprima le righe che vuoi importare. Il riepilogo non salva nulla.</p>${errorMessage ? `<div class="callout danger">${esc(errorMessage)}</div>` : ""}<label class="file-input"><input type="file" accept=".xlsx" data-input="excel-import-file" ${excelImporting ? "disabled" : ""}/><span><strong>${plan ? "Seleziona un altro file Excel" : "Seleziona file Excel"}</strong><span>${plan ? esc(plan.fileName) : "Solo file .xlsx, massimo 20 MB."}</span></span></label>${plan ? `<div class="excel-import-summary"><div><strong>${plan.properties.filter((row) => row.selected).length}</strong><span>immobili selezionati</span></div><div><strong>${plan.accounts.filter((row) => row.selected).length}</strong><span>utenze selezionate</span></div><div><strong>${plan.bills.filter((row) => row.selected).length}</strong><span>bollette selezionate</span></div></div><div class="callout warning">Spunta le righe che vuoi importare. Verranno caricate le righe selezionate che hanno i dati minimi per creare una scheda. Immobili e utenze incomplete saranno importati con valori provvisori da completare poi nella piattaforma. Le bollette richiedono invece importo, periodo e utenza collegata. I duplicati vengono esclusi. Se selezioni un’utenza o una bolletta che richiede una nuova scheda collegata, l’immobile o l’utenza necessari vengono selezionati automaticamente. Contratti, inquilini, spese aggregate e quote non sono importabili da questo file.</div><div class="excel-import-groups">${groups}</div>${plan.failures?.length ? `<div class="callout danger">${esc(plan.failures.length)} righe non sono state salvate. Controlla l’esito e riprova dopo aver corretto i dati o la connessione.</div>` : ""}` : ""}</div>`;
     const closeButton = `<button class="button secondary" type="button" data-action="close-dialog" ${excelImporting ? "disabled" : ""}>Chiudi</button>`;
     const importButton = plan ? `<button class="button" type="button" data-action="commit-excel-import" ${readyCount && !excelImporting ? "" : "disabled"}>${excelImporting ? "Salvataggio…" : "Importa " + readyCount + " righe selezionate"}</button>` : "";
     const recheckButton = plan?.failures?.length && !excelImporting ? `<button class="button secondary" type="button" data-action="recheck-excel-import">Rivaluta le righe con errore</button>` : "";

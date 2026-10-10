@@ -104,16 +104,16 @@ GitHub Pages rende pubblico il sito; il repository contiene solo il frontend. Da
 
 ### 5. Importa il file Excel
 
-Accedi alla piattaforma con un account **Admin** e apri **Impostazioni > Carica dati da Excel**. Seleziona il file `Verifica-immobili-Proprieta-Papa.xlsx`: nell’anteprima spunta direttamente gli immobili, le utenze e le bollette da importare. Solo le righe spuntate e complete verranno salvate in Supabase; il file Excel viene letto nel browser e non viene caricato.
+Accedi alla piattaforma con un account **Admin** e apri **Impostazioni > Carica dati da Excel**. Seleziona il file `Verifica-immobili-Proprieta-Papa.xlsx`: nell’anteprima spunta direttamente gli immobili, le utenze e le bollette da importare. Le righe selezionate con i dati minimi verranno salvate in Supabase; le schede di immobili e utenze possono essere completate successivamente dalla piattaforma. Il file Excel viene letto nel browser e non viene caricato.
 
 Prima dell’importazione:
 
-1. Se una riga è indicata come incompleta, correggi i campi richiesti nel foglio e carica di nuovo il file. Il campo **Decisione importazione** non è necessario: la scelta si fa nell’anteprima.
-2. Nell’anteprima spunta le righe complete che vuoi importare. Puoi selezionare tutte le righe pronte di una sezione con **Seleziona pronte**.
+1. Il campo **Decisione importazione** non è necessario: la scelta si fa nell’anteprima.
+2. Spunta le righe che vuoi importare. Gli immobili selezionati con un nome e le utenze selezionate collegate a un immobile vengono creati anche se alcuni campi sono vuoti; per i campi mancanti vengono usati valori provvisori da correggere aprendo la scheda nella piattaforma. Puoi usare **Seleziona pronte** per le righe già complete.
 3. Per un’utenza o una bolletta che richiede una nuova scheda collegata, l’immobile o l’utenza di cui dipende vengono selezionati automaticamente.
 4. Controlla il numero di righe selezionate e premi **Importa**.
 
-Le righe incomplete, le associazioni ambigue e i duplicati vengono saltati. Puoi caricare di nuovo il file dopo averlo corretto: gli immobili con lo stesso nome/indirizzo/comune, le utenze equivalenti e le bollette con stessa utenza/periodo/importo non vengono reinseriti. Le bollette caricano i soli dati strutturati, non i PDF originali. **Dati economici aggregati, spese “General”, proposte di quote, contratti e inquilini** restano nel file: mancano date, collegamenti o campi sufficienti per registrarli correttamente nella piattaforma.
+Le righe senza dati minimi, le associazioni ambigue e i duplicati vengono saltati. Le bollette richiedono importo, periodo e utenza collegata. Puoi caricare di nuovo il file dopo averlo corretto: gli immobili con lo stesso nome/indirizzo/comune, le utenze equivalenti e le bollette con stessa utenza/periodo/importo non vengono reinseriti. Le bollette caricano i soli dati strutturati, non i PDF originali. **Dati economici aggregati, spese “General”, proposte di quote, contratti e inquilini** restano nel file: mancano date, collegamenti o campi sufficienti per registrarli correttamente nella piattaforma.
 
 ## Ruoli e visibilità
 
