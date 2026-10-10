@@ -531,7 +531,7 @@
 
   function deleteButton(kind, id, label = "Elimina") {
     if (state.profile?.role !== "admin" || !id) return "";
-    return `<button class="button danger small" type="button" data-action="request-delete" data-delete-type="${esc(kind)}" data-record-id="${esc(id)}">${esc(label)}</button>`;
+    return `<button class="button danger small" type="button" data-action="request-delete" data-delete-type="${esc(kind)}" data-record-id="${esc(id)}">${uiIcon("trash", 14)}${esc(label)}</button>`;
   }
 
   function propertyRent(propertyId) {
@@ -607,13 +607,49 @@
 
   function navItems() {
     return [
-      { id: "dashboard", label: "Dashboard", icon: "⌂" },
-      { id: "properties", label: "Immobili", icon: "▣" },
-      { id: "finance", label: "Conto economico", icon: "€" },
-      { id: "maintenance", label: "Manutenzioni", icon: "⌁" },
-      { id: "people", label: "Persone", icon: "♙" },
-      { id: "settings", label: "Impostazioni", icon: "⚙" }
+      { id: "dashboard", label: "Dashboard", icon: "dashboard" },
+      { id: "properties", label: "Immobili", icon: "building" },
+      { id: "finance", label: "Conto economico", icon: "wallet" },
+      { id: "maintenance", label: "Manutenzioni", icon: "wrench" },
+      { id: "people", label: "Persone", icon: "users" },
+      { id: "settings", label: "Impostazioni", icon: "settings" }
     ];
+  }
+
+  function uiIcon(name, size = 20, extraClass = "") {
+    const paths = {
+      dashboard: `<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="4" rx="1.5"/><rect x="13.5" y="10.5" width="7" height="10" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/>`,
+      building: `<rect x="4" y="2.8" width="16" height="18.4" rx="2"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2M9 21v-3h6v3"/>`,
+      wallet: `<rect x="3" y="5" width="18" height="15" rx="2.5"/><path d="M3 9h18M16 14h.01"/><path d="M7 5V3.8A1.8 1.8 0 0 1 8.8 2h9.4"/>`,
+      wrench: `<path d="M14.7 6.3a5 5 0 0 0-6.5 6.5L3.5 17.5a2.1 2.1 0 0 0 3 3l4.7-4.7a5 5 0 0 0 6.5-6.5l-3 3-3-3 3-3Z"/>`,
+      users: `<path d="M16 21v-1.5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4V21"/><circle cx="9.5" cy="7.5" r="3.5"/><path d="M17 11a3.5 3.5 0 0 0 0-7M21 21v-1.5a4 4 0 0 0-3-3.87"/>`,
+      settings: `<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><circle cx="4" cy="12" r="2"/><circle cx="12" cy="10" r="2"/><circle cx="20" cy="14" r="2"/>`,
+      home: `<path d="m3 10 9-7 9 7"/><path d="M5 9.5V21h14V9.5M9 21v-6h6v6"/>`,
+      search: `<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>`,
+      info: `<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>`,
+      arrowUpRight: `<path d="M7 17 17 7M8 7h9v9"/>`,
+      arrowDownRight: `<path d="m7 7 10 10M8 17h9V8"/>`,
+      check: `<path d="m5 12 4 4L19 6"/>`,
+      checkCircle: `<circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16.5 9"/>`,
+      pieChart: `<path d="M11 3.1A9 9 0 1 0 20.9 13H11V3.1Z"/><path d="M14 3.3V10h6.7A9 9 0 0 0 14 3.3Z"/>`,
+      euro: `<path d="M19 5.5a8 8 0 1 0 0 13"/><path d="M4 10h10M4 14h8"/>`,
+      coins: `<circle cx="8" cy="8" r="5"/><path d="M8 5.5v5M6.5 7h3M14.5 10.5a5 5 0 1 1-4 8.1M15 13v5M13.5 14.5h3"/>`,
+      arrowRight: `<path d="M5 12h14M13 6l6 6-6 6"/>`,
+      arrowLeft: `<path d="M19 12H5M11 18l-6-6 6-6"/>`,
+      chevronRight: `<path d="m9 18 6-6-6-6"/>`,
+      fileUpload: `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M12 18v-6M9.5 14.5 12 12l2.5 2.5"/>`,
+      fileText: `<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h8"/>`,
+      utility: `<path d="m13 2-3 8h7l-6 12 1.5-9H6l7-11Z"/>`,
+      refresh: `<path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3"/>`,
+      download: `<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>`,
+      upload: `<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>`,
+      plus: `<path d="M12 5v14M5 12h14"/>`,
+      edit: `<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/>`,
+      trash: `<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"/>`,
+      lock: `<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/><path d="M12 14v3"/>`
+    };
+    const className = extraClass ? ` ${extraClass}` : "";
+    return `<svg class="ui-icon${className}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name] || paths.dashboard}</svg>`;
   }
 
   function renderLogin() {
@@ -682,12 +718,12 @@
 
   function renderBackendSetup() {
     return `
-      <div class="info-banner"><span>🔒</span><span><strong>Accessi reali non ancora attivi.</strong> Nel file <code>config.js</code> del repository GitHub vanno inseriti il Project URL e la Publishable key del progetto Supabase.</span></div>
+      <div class="info-banner"><span class="info-banner-icon">${uiIcon("lock", 19)}</span><span><strong>Accessi reali non ancora attivi.</strong> Nel file <code>config.js</code> del repository GitHub vanno inseriti il Project URL e la Publishable key del progetto Supabase.</span></div>
       <p class="row-muted">Non creare nuovi account: dopo il collegamento, gli utenti già presenti in Supabase accederanno con le loro credenziali attuali.</p>`;
   }
 
   function brandMark() {
-    return `<span class="brand-mark" aria-hidden="true">⌂</span>`;
+    return `<span class="brand-mark" aria-hidden="true">${uiIcon("building", 24)}</span>`;
   }
 
   function renderShell() {
@@ -716,9 +752,9 @@
               <p class="page-subtitle">${esc(page.subtitle)}</p>
             </div>
             <div class="topbar-actions">
-              <button class="button secondary" data-action="export-csv">⇩ Esporta dati</button>
-              <button class="button secondary icon-button" title="Aggiorna" aria-label="Aggiorna" data-action="refresh">↻</button>
-              ${page.action ? `<button class="button" data-action="${page.action}">${page.actionLabel}</button>` : ""}
+              <button class="button secondary" data-action="export-csv">${uiIcon("download", 16)} Esporta dati</button>
+              <button class="button secondary icon-button" title="Aggiorna" aria-label="Aggiorna" data-action="refresh">${uiIcon("refresh", 18)}</button>
+              ${page.action ? `<button class="button" data-action="${page.action}">${page.actionLabel.startsWith("+ ") ? `${uiIcon("plus", 16)} ${esc(page.actionLabel.slice(2))}` : page.action === "edit-property" ? `${uiIcon("edit", 16)} ${esc(page.actionLabel)}` : esc(page.actionLabel)}</button>` : ""}
             </div>
           </header>
           <section class="content" id="view-content"></section>
@@ -732,12 +768,12 @@
 
   function navButton(item) {
     const active = state.activeView === item.id || (state.activeView === "tenant" && item.id === "people");
-    return `<button class="nav-button ${active ? "active" : ""}" data-action="navigate" data-view="${item.id}"><span class="nav-icon">${item.icon}</span>${esc(item.label)}</button>`;
+    return `<button class="nav-button ${active ? "active" : ""}" data-action="navigate" data-view="${item.id}"><span class="nav-icon">${uiIcon(item.icon, 19)}</span>${esc(item.label)}</button>`;
   }
 
   function mobileNavButton(item) {
     const active = state.activeView === item.id || (state.activeView === "tenant" && item.id === "people");
-    return `<button class="${active ? "active" : ""}" data-action="navigate" data-view="${item.id}"><span>${item.icon}</span>${esc(item.label)}</button>`;
+    return `<button class="${active ? "active" : ""}" data-action="navigate" data-view="${item.id}"><span>${uiIcon(item.icon, 20)}</span>${esc(item.label)}</button>`;
   }
 
   function pageMeta() {
@@ -789,17 +825,17 @@
     const propertyRows = properties.slice(0, 5);
     return `
       <div class="kpi-grid">
-        ${kpiCard("Immobili", properties.length, `${rented} fittati · ${vacant} sfitti`, "⌂")}
-        ${kpiCard("Canoni attesi", money(monthlyIncome), "al mese, contratti attivi", "↗")}
-        ${kpiCard("Entrate registrate", money(incomeRecorded), `nel mese di ${monthLabel(month)}`, "✓")}
-        ${kpiCard("Uscite registrate", money(expense), `nel mese di ${monthLabel(month)}`, "↘")}
-        ${kpiCard("Saldo del mese", money(incomeRecorded - expense), "movimenti effettivamente segnati", "◒", "highlight")}
+        ${kpiCard("Immobili", properties.length, `${rented} fittati · ${vacant} sfitti`, "building")}
+        ${kpiCard("Canoni attesi", money(monthlyIncome), "al mese, contratti attivi", "arrowUpRight")}
+        ${kpiCard("Entrate registrate", money(incomeRecorded), `nel mese di ${monthLabel(month)}`, "checkCircle")}
+        ${kpiCard("Uscite registrate", money(expense), `nel mese di ${monthLabel(month)}`, "arrowDownRight")}
+        ${kpiCard("Saldo del mese", money(incomeRecorded - expense), "movimenti effettivamente segnati", "pieChart", "highlight")}
       </div>
       <div class="page-grid">
         <section class="panel">
-          <div class="panel-head"><div><h2>Stato degli immobili</h2><p>Apri una scheda per gestire contratti, documenti e costi.</p></div><button class="button ghost small" data-action="navigate" data-view="properties">Vedi tutti →</button></div>
+          <div class="panel-head"><div><h2>Stato degli immobili</h2><p>Apri una scheda per gestire contratti, documenti e costi.</p></div><button class="button ghost small" data-action="navigate" data-view="properties">Vedi tutti ${uiIcon("arrowRight", 15)}</button></div>
           <div class="property-list">
-            ${propertyRows.map((property) => propertyRow(property)).join("") || empty("⌂", "Nessun immobile", "Aggiungi il primo immobile per iniziare.")}
+            ${propertyRows.map((property) => propertyRow(property)).join("") || empty("building", "Nessun immobile", "Aggiungi il primo immobile per iniziare.")}
           </div>
         </section>
         <section class="panel">
@@ -809,22 +845,22 @@
       </div>
       <div class="page-grid">
         <section class="panel">
-          <div class="panel-head"><div><h2>Canoni del mese</h2><p>Contabili caricate dagli inquilini e stato di verifica.</p></div><button class="button ghost small" data-action="navigate" data-view="finance">Conto economico →</button></div>
+          <div class="panel-head"><div><h2>Canoni del mese</h2><p>Contabili caricate dagli inquilini e stato di verifica.</p></div><button class="button ghost small" data-action="navigate" data-view="finance">Conto economico ${uiIcon("arrowRight", 15)}</button></div>
           <div class="property-list">
-            ${payments.length ? payments.map(paymentRow).join("") : empty("€", "Nessun canone pianificato", "I canoni compariranno qui quando associ un contratto attivo.")}
+            ${payments.length ? payments.map(paymentRow).join("") : empty("coins", "Nessun canone pianificato", "I canoni compariranno qui quando associ un contratto attivo.")}
           </div>
         </section>
         <section class="panel">
-          <div class="panel-head"><div><h2>Da seguire</h2><p>Interventi e scadenze vicine.</p></div><button class="button ghost small" data-action="navigate" data-view="maintenance">Manutenzioni →</button></div>
+          <div class="panel-head"><div><h2>Da seguire</h2><p>Interventi e scadenze vicine.</p></div><button class="button ghost small" data-action="navigate" data-view="maintenance">Manutenzioni ${uiIcon("arrowRight", 15)}</button></div>
           <div class="task-list">
-            ${upcoming.length ? upcoming.map(taskRow).join("") : empty("✓", "Tutto in ordine", "Non ci sono interventi aperti.")}
+            ${upcoming.length ? upcoming.map(taskRow).join("") : empty("checkCircle", "Tutto in ordine", "Non ci sono interventi aperti.")}
           </div>
         </section>
       </div>`;
   }
 
-  function kpiCard(label, value, note, icon, extraClass = "") {
-    return `<article class="kpi-card ${extraClass}"><div class="kpi-label"><span>${esc(label)}</span><span>${icon}</span></div><div class="kpi-value">${esc(value)}</div><div class="kpi-note">${esc(note)}</div></article>`;
+  function kpiCard(label, value, note, iconName, extraClass = "") {
+    return `<article class="kpi-card ${extraClass}"><div class="kpi-label"><span>${esc(label)}</span><span class="kpi-icon">${uiIcon(iconName, 18)}</span></div><div class="kpi-value">${esc(value)}</div><div class="kpi-note">${esc(note)}</div></article>`;
   }
 
   function occupancyPanel(properties, rented, vacant) {
@@ -837,11 +873,11 @@
   function propertyRow(property) {
     const tenants = getTenantsForProperty(property.id);
     return `<article class="property-row">
-      <button class="property-title" data-action="open-property" data-property-id="${property.id}"><span class="property-avatar">⌂</span><span><strong>${esc(property.name)}</strong><span>${esc(property.address)}, ${esc(property.city)}</span></span></button>
+      <button class="property-title" data-action="open-property" data-property-id="${property.id}"><span class="property-avatar">${uiIcon("building", 18)}</span><span><strong>${esc(property.name)}</strong><span>${esc(property.address)}, ${esc(property.city)}</span></span></button>
       <span class="tenant-col">${badge(property.status)}</span>
       <span class="rent-col row-number">${property.status === "rented" ? money(propertyRent(property.id)) : "—"}</span>
       <span class="row-muted">${tenants.length ? esc(tenants.map((tenant) => tenant.display_name.split(" ")[0]).join(", ")) : "Nessun inquilino"}</span>
-      <span class="row-actions"><button class="row-action" aria-label="Apri ${esc(property.name)}" data-action="open-property" data-property-id="${property.id}">›</button>${deleteButton("property", property.id)}</span>
+      <span class="row-actions"><button class="row-action" aria-label="Apri ${esc(property.name)}" data-action="open-property" data-property-id="${property.id}">${uiIcon("chevronRight", 18)}</button>${deleteButton("property", property.id)}</span>
     </article>`;
   }
 
@@ -849,11 +885,11 @@
     const property = getProperty(payment.property_id);
     const tenant = getProfile(payment.tenant_id);
     return `<article class="property-row">
-      <div class="property-title"><span class="property-avatar">€</span><span><strong>${esc(property?.name || "Immobile")}</strong><span>${esc(tenant?.display_name || "Inquilino")} · ${esc(monthLabel(payment.period))}</span></span></div>
+      <div class="property-title"><span class="property-avatar">${uiIcon("euro", 18)}</span><span><strong>${esc(property?.name || "Immobile")}</strong><span>${esc(tenant?.display_name || "Inquilino")} · ${esc(monthLabel(payment.period))}</span></span></div>
       <span class="tenant-col">${badge(payment.status)}</span>
       <span class="rent-col row-number">${money(payment.amount_due)}</span>
       <span class="row-muted">Scad. ${dateLabel(payment.due_date, { day: "2-digit", month: "short" })}</span>
-      <span class="row-actions"><button class="row-action" data-action="open-payment" data-payment-id="${payment.id}" aria-label="Gestisci pagamento">›</button>${deleteButton("payment", payment.id)}</span>
+      <span class="row-actions"><button class="row-action" data-action="open-payment" data-payment-id="${payment.id}" aria-label="Gestisci pagamento">${uiIcon("chevronRight", 18)}</button>${deleteButton("payment", payment.id)}</span>
     </article>`;
   }
 
@@ -874,12 +910,12 @@
     });
     return `
       <div class="toolbar">
-        <label class="search"><span>⌕</span><input data-input="property-search" value="${esc(state.propertySearch)}" placeholder="Cerca per nome, città o indirizzo" /></label>
+        <label class="search"><span class="search-icon">${uiIcon("search", 17)}</span><input data-input="property-search" value="${esc(state.propertySearch)}" placeholder="Cerca per nome, città o indirizzo" /></label>
         <div class="filter-row">
           ${filterChip("all", "Tutti")}${filterChip("rented", "Fittati")}${filterChip("vacant", "Sfitti")}${filterChip("personal", "Personali")}
         </div>
       </div>
-      ${properties.length ? `<div class="card-grid">${properties.map(propertyCard).join("")}</div>` : empty("⌂", "Nessun immobile trovato", "Modifica i filtri oppure aggiungi una nuova proprietà.")}`;
+      ${properties.length ? `<div class="card-grid">${properties.map(propertyCard).join("")}</div>` : empty("building", "Nessun immobile trovato", "Modifica i filtri oppure aggiungi una nuova proprietà.")}`;
   }
 
   function filterChip(value, label) {
@@ -908,7 +944,7 @@
     return `
       <section class="property-hero">
         <div><p class="eyebrow">${esc(property.type || "Immobile")}</p><h2>${esc(property.name)}</h2><p>${esc(property.address)}, ${esc(property.postal_code || "")} ${esc(property.city)}</p><div class="property-hero-meta">${badge(property.status)}<span class="hero-pill">Valore stimato ${money(property.estimated_value)}</span><span class="hero-pill">${getTenantsForProperty(property.id).length} inquilino/i</span></div></div>
-        <div class="panel-actions"><button class="button secondary" data-action="navigate" data-view="properties">← Immobili</button>${deleteButton("property", property.id)}</div>
+        <div class="panel-actions"><button class="button secondary" data-action="navigate" data-view="properties">${uiIcon("arrowLeft", 16)} Immobili</button>${deleteButton("property", property.id)}</div>
       </section>
       <nav class="property-tabs" aria-label="Sezioni della scheda immobile">${tabs.map(([id, label]) => `<button class="property-tab ${state.propertyTab === id ? "active" : ""}" data-action="property-tab" data-tab="${id}">${label}</button>`).join("")}</nav>
       ${renderPropertyTab(property)}`;
@@ -942,15 +978,15 @@
       </section>
       <div class="split">
         <section class="panel pad"><div class="section-head"><div><h2>Note sull’immobile</h2><p>Informazioni ad uso amministrativo.</p></div></div><p style="margin:0;color:#557082;font-size:.84rem;line-height:1.65">${esc(property.notes || "Nessuna nota inserita.")}</p></section>
-        <section class="panel pad"><div class="section-head"><div><h2>Azioni rapide</h2><p>Aggiorna gli elementi più frequenti.</p></div></div><div class="stack"><button class="button secondary full" data-action="add-document" data-property-id="${property.id}">⇧ Carica documento</button><button class="button secondary full" data-action="add-utility" data-property-id="${property.id}">+ Registra utenza/bolletta</button><button class="button secondary full" data-action="add-maintenance" data-property-id="${property.id}">+ Registra intervento</button></div></section>
+        <section class="panel pad"><div class="section-head"><div><h2>Azioni rapide</h2><p>Aggiorna gli elementi più frequenti.</p></div></div><div class="stack"><button class="button secondary full" data-action="add-document" data-property-id="${property.id}">${uiIcon("fileUpload", 17)} Carica documento</button><button class="button secondary full" data-action="add-utility" data-property-id="${property.id}">${uiIcon("plus", 17)} Registra utenza/bolletta</button><button class="button secondary full" data-action="add-maintenance" data-property-id="${property.id}">${uiIcon("plus", 17)} Registra intervento</button></div></section>
       </div>
     </div>`;
   }
 
   function renderPropertyTenants(property) {
     const leases = state.data.leases.filter((lease) => lease.property_id === property.id);
-    return `<section class="panel"><div class="panel-head"><div><h2>Inquilini e contratti</h2><p>Una locazione può contenere più inquilini, ognuno con il proprio profilo di accesso.</p></div><div class="panel-actions"><button class="button secondary small" data-action="add-tenant" data-property-id="${property.id}">+ Collega inquilino</button><button class="button small" data-action="add-payment" data-property-id="${property.id}">+ Canone</button></div></div>
-      ${leases.length ? leases.map((lease) => leaseCard(lease)).join("") : empty("♙", "Nessun contratto attivo", "Collega un inquilino per creare il primo contratto.")}
+    return `<section class="panel"><div class="panel-head"><div><h2>Inquilini e contratti</h2><p>Una locazione può contenere più inquilini, ognuno con il proprio profilo di accesso.</p></div><div class="panel-actions"><button class="button secondary small" data-action="add-tenant" data-property-id="${property.id}">${uiIcon("plus", 15)} Collega inquilino</button><button class="button small" data-action="add-payment" data-property-id="${property.id}">${uiIcon("plus", 15)} Canone</button></div></div>
+      ${leases.length ? leases.map((lease) => leaseCard(lease)).join("") : empty("users", "Nessun contratto attivo", "Collega un inquilino per creare il primo contratto.")}
     </section>`;
   }
 
@@ -963,23 +999,23 @@
     const entries = state.data.financial_entries.filter((entry) => entry.property_id === property.id).sort((a, b) => String(b.date).localeCompare(String(a.date)));
     const income = entries.filter((entry) => entry.direction === "income").reduce((sum, entry) => sum + Number(entry.amount), 0);
     const expenses = entries.filter((entry) => entry.direction === "expense").reduce((sum, entry) => sum + Number(entry.amount), 0);
-    return `<div class="stack"><section class="detail-grid"><article class="data-tile"><span>Entrate registrate</span><strong>${money(income)}</strong></article><article class="data-tile"><span>Uscite registrate</span><strong>${money(expenses)}</strong></article><article class="data-tile"><span>Saldo storico</span><strong>${money(income - expenses)}</strong></article></section><section class="panel"><div class="panel-head"><div><h2>Movimenti dell’immobile</h2><p>Canoni, rate, manutenzioni, condominio e altri costi.</p></div><button class="button small" data-action="add-financial" data-property-id="${property.id}">+ Movimento</button></div>${financeTable(entries)}</section></div>`;
+    return `<div class="stack"><section class="detail-grid"><article class="data-tile"><span>Entrate registrate</span><strong>${money(income)}</strong></article><article class="data-tile"><span>Uscite registrate</span><strong>${money(expenses)}</strong></article><article class="data-tile"><span>Saldo storico</span><strong>${money(income - expenses)}</strong></article></section><section class="panel"><div class="panel-head"><div><h2>Movimenti dell’immobile</h2><p>Canoni, rate, manutenzioni, condominio e altri costi.</p></div><button class="button small" data-action="add-financial" data-property-id="${property.id}">${uiIcon("plus", 15)} Movimento</button></div>${financeTable(entries)}</section></div>`;
   }
 
   function renderPropertyUtilities(property) {
     const utilities = state.data.utility_accounts.filter((utility) => utility.property_id === property.id);
     const bills = state.data.utility_bills.filter((bill) => bill.property_id === property.id).sort((a, b) => String(b.period).localeCompare(String(a.period)));
-    return `<div class="stack"><section class="panel"><div class="panel-head"><div><h2>Utenze</h2><p>Indica chi è intestatario e se il costo viene riaddebitato agli inquilini.</p></div><button class="button small" data-action="add-utility" data-property-id="${property.id}">+ Utenza o bolletta</button></div>${utilities.length ? `<div class="table-wrap"><table><thead><tr><th>Utenza</th><th>Fornitore</th><th>Intestata a</th><th>Riaddebito</th><th>Azioni</th></tr></thead><tbody>${utilities.map((utility) => `<tr><td><strong>${esc(utility.kind)}</strong><br><small>${esc(utility.contract_code || "")}</small></td><td>${esc(utility.provider || "—")}</td><td>${utility.holder === "owner" ? "Proprietario" : "Inquilino"}</td><td>${utility.recharged_to_tenant ? "Sì" : "No"}</td><td>${deleteButton("utility", utility.id)}</td></tr>`).join("")}</tbody></table></div>` : empty("⚡", "Nessuna utenza censita", "Aggiungi luce, gas, acqua, condominio o altri servizi.")}</section><section class="panel"><div class="panel-head"><div><h2>Bollettini e scadenze</h2><p>Documenta le fatture anche quando il contratto non è intestato all’inquilino.</p></div></div>${bills.length ? `<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Utenza</th><th>Scadenza</th><th>Importo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${bills.map((bill) => `<tr><td>${esc(monthLabel(bill.period))}</td><td>${esc(state.data.utility_accounts.find((utility) => utility.id === bill.utility_id)?.kind || "Utenza")}</td><td>${dateLabel(bill.due_date)}</td><td class="number">${money(bill.amount)}</td><td>${badge(bill.status)}</td><td>${deleteButton("utility-bill", bill.id)}</td></tr>`).join("")}</tbody></table></div>` : empty("▤", "Nessuna bolletta", "Le nuove bollette saranno archiviate qui.")}</section></div>`;
+    return `<div class="stack"><section class="panel"><div class="panel-head"><div><h2>Utenze</h2><p>Indica chi è intestatario e se il costo viene riaddebitato agli inquilini.</p></div><button class="button small" data-action="add-utility" data-property-id="${property.id}">${uiIcon("plus", 16)} Utenza o bolletta</button></div>${utilities.length ? `<div class="table-wrap"><table><thead><tr><th>Utenza</th><th>Fornitore</th><th>Intestata a</th><th>Riaddebito</th><th>Azioni</th></tr></thead><tbody>${utilities.map((utility) => `<tr><td><strong>${esc(utility.kind)}</strong><br><small>${esc(utility.contract_code || "")}</small></td><td>${esc(utility.provider || "—")}</td><td>${utility.holder === "owner" ? "Proprietario" : "Inquilino"}</td><td>${utility.recharged_to_tenant ? "Sì" : "No"}</td><td>${deleteButton("utility", utility.id)}</td></tr>`).join("")}</tbody></table></div>` : empty("utility", "Nessuna utenza censita", "Aggiungi luce, gas, acqua, condominio o altri servizi.")}</section><section class="panel"><div class="panel-head"><div><h2>Bollettini e scadenze</h2><p>Documenta le fatture anche quando il contratto non è intestato all’inquilino.</p></div></div>${bills.length ? `<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Utenza</th><th>Scadenza</th><th>Importo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${bills.map((bill) => `<tr><td>${esc(monthLabel(bill.period))}</td><td>${esc(state.data.utility_accounts.find((utility) => utility.id === bill.utility_id)?.kind || "Utenza")}</td><td>${dateLabel(bill.due_date)}</td><td class="number">${money(bill.amount)}</td><td>${badge(bill.status)}</td><td>${deleteButton("utility-bill", bill.id)}</td></tr>`).join("")}</tbody></table></div>` : empty("fileText", "Nessuna bolletta", "Le nuove bollette saranno archiviate qui.")}</section></div>`;
   }
 
   function renderPropertyDocuments(property) {
     const docs = state.data.documents.filter((document) => document.property_id === property.id).sort((a, b) => String(b.uploaded_at).localeCompare(String(a.uploaded_at)));
-    return `<section class="panel"><div class="panel-head"><div><h2>Archivio documenti</h2><p>Contratti, verbali, bollette, mutui e documentazione di manutenzione.</p></div><button class="button small" data-action="add-document" data-property-id="${property.id}">⇧ Carica file</button></div>${docs.length ? `<div class="table-wrap"><table><thead><tr><th>Documento</th><th>Categoria</th><th>Caricato</th><th>Visibilità inquilino</th><th>Azioni</th></tr></thead><tbody>${docs.map((document) => `<tr><td><strong>${esc(document.name)}</strong></td><td>${esc(document.category)}</td><td>${dateLabel(document.uploaded_at)}</td><td>${document.visible_to_tenant ? badge("active") : "<span class=\"row-muted\">Solo admin</span>"}</td><td>${deleteButton("document", document.id)}</td></tr>`).join("")}</tbody></table></div>` : empty("▤", "Archivio vuoto", "Carica il contratto o qualsiasi documento utile per la gestione.")}</section>`;
+    return `<section class="panel"><div class="panel-head"><div><h2>Archivio documenti</h2><p>Contratti, verbali, bollette, mutui e documentazione di manutenzione.</p></div><button class="button small" data-action="add-document" data-property-id="${property.id}">${uiIcon("fileUpload", 16)} Carica file</button></div>${docs.length ? `<div class="table-wrap"><table><thead><tr><th>Documento</th><th>Categoria</th><th>Caricato</th><th>Visibilità inquilino</th><th>Azioni</th></tr></thead><tbody>${docs.map((document) => `<tr><td><strong>${esc(document.name)}</strong></td><td>${esc(document.category)}</td><td>${dateLabel(document.uploaded_at)}</td><td>${document.visible_to_tenant ? badge("active") : "<span class=\"row-muted\">Solo admin</span>"}</td><td>${deleteButton("document", document.id)}</td></tr>`).join("")}</tbody></table></div>` : empty("fileText", "Archivio vuoto", "Carica il contratto o qualsiasi documento utile per la gestione.")}</section>`;
   }
 
   function renderPropertyMortgage(property) {
     const mortgage = getMortgage(property.id);
-    if (!mortgage) return `<section class="panel">${empty("⌁", "Nessun mutuo registrato", "Puoi aggiungerlo dalla sezione mutuo quando attiveremo la configurazione completa del backend.")}</section>`;
+    if (!mortgage) return `<section class="panel">${empty("building", "Nessun mutuo registrato", "Puoi aggiungerlo dalla sezione mutuo quando attiveremo la configurazione completa del backend.")}</section>`;
     const paid = Math.max(0, Number(mortgage.original_amount) - Number(mortgage.remaining_amount));
     const percent = mortgage.original_amount ? Math.round((paid / mortgage.original_amount) * 100) : 0;
     return `<section class="panel pad"><div class="section-head"><div><h2>Mutuo</h2><p>${esc(mortgage.lender)} · scadenza ${dateLabel(mortgage.end_date)}</p></div>${deleteButton("mortgage", mortgage.id)}</div><div class="detail-grid"><article class="data-tile"><span>Importo iniziale</span><strong>${money(mortgage.original_amount)}</strong></article><article class="data-tile"><span>Residuo</span><strong>${money(mortgage.remaining_amount)}</strong></article><article class="data-tile"><span>Rata mensile</span><strong>${money(mortgage.monthly_payment)}</strong></article><article class="data-tile"><span>Tasso</span><strong>${decimal(mortgage.rate)}%</strong></article><article class="data-tile"><span>Scadenza rata</span><strong>Giorno ${esc(mortgage.due_day)}</strong></article><article class="data-tile"><span>Capitale rimborsato</span><strong>${percent}%</strong></article></div></section>`;
@@ -987,19 +1023,19 @@
 
   function renderPropertyMaintenance(property) {
     const jobs = state.data.maintenance_jobs.filter((job) => job.property_id === property.id).sort((a, b) => String(b.scheduled_date).localeCompare(String(a.scheduled_date)));
-    return `<section class="panel"><div class="panel-head"><div><h2>Interventi</h2><p>Ogni intervento conserva attività svolta, fornitore e costo.</p></div><button class="button small" data-action="add-maintenance" data-property-id="${property.id}">+ Intervento</button></div>${jobs.length ? maintenanceTable(jobs) : empty("⌁", "Nessun intervento", "Registra qui le chiamate a elettricisti, idraulici, muratori e altri manutentori.")}</section>`;
+    return `<section class="panel"><div class="panel-head"><div><h2>Interventi</h2><p>Ogni intervento conserva attività svolta, fornitore e costo.</p></div><button class="button small" data-action="add-maintenance" data-property-id="${property.id}">${uiIcon("plus", 16)} Intervento</button></div>${jobs.length ? maintenanceTable(jobs) : empty("wrench", "Nessun intervento", "Registra qui le chiamate a elettricisti, idraulici, muratori e altri manutentori.")}</section>`;
   }
 
   function renderPropertyPermissions(property) {
     const tenants = getTenantsForProperty(property.id);
-    if (!tenants.length) return `<section class="panel">${empty("♙", "Nessun inquilino collegato", "Prima collega un inquilino o un contratto, poi potrai decidere cosa vede nel suo portale.")}</section>`;
+    if (!tenants.length) return `<section class="panel">${empty("users", "Nessun inquilino collegato", "Prima collega un inquilino o un contratto, poi potrai decidere cosa vede nel suo portale.")}</section>`;
     return `<section class="panel"><div class="panel-head"><div><h2>Visibilità del portale inquilino</h2><p>Questi permessi vengono applicati separatamente per ogni persona collegata all’immobile.</p></div></div><div style="padding:0 20px 20px" class="stack">${tenants.map((tenant) => permissionCard(property, tenant)).join("")}</div></section>`;
   }
 
   function permissionCard(property, tenant) {
     const permissions = getPermissions(property.id, tenant.id);
     const savedPermission = state.data.tenant_permissions.find((item) => item.property_id === property.id && item.tenant_id === tenant.id);
-    return `<div class="panel pad" style="box-shadow:none;border-radius:14px"><div class="section-head"><div><h2>${esc(tenant.display_name)}</h2><p>${esc(tenant.email || tenant.username || "Profilo inquilino")}</p></div><div class="panel-actions"><button class="button secondary small" data-action="edit-permissions" data-property-id="${property.id}" data-tenant-id="${tenant.id}">Modifica</button>${deleteButton("permission", savedPermission?.id)}</div></div><div class="permission-grid"><div class="permission"><span>${permissions.show_documents ? "✓" : "—"}</span><span><strong>Documenti</strong><span>Documenti abilitati</span></span></div><div class="permission"><span>${permissions.show_utilities ? "✓" : "—"}</span><span><strong>Utenze</strong><span>Bollettini e scadenze</span></span></div><div class="permission"><span>${permissions.show_maintenance ? "✓" : "—"}</span><span><strong>Interventi</strong><span>Stato manutenzioni</span></span></div><div class="permission"><span>${permissions.allow_payment_upload ? "✓" : "—"}</span><span><strong>Contabili</strong><span>Caricamento pagamento</span></span></div></div></div>`;
+    return `<div class="panel pad" style="box-shadow:none;border-radius:14px"><div class="section-head"><div><h2>${esc(tenant.display_name)}</h2><p>${esc(tenant.email || tenant.username || "Profilo inquilino")}</p></div><div class="panel-actions"><button class="button secondary small" data-action="edit-permissions" data-property-id="${property.id}" data-tenant-id="${tenant.id}">Modifica</button>${deleteButton("permission", savedPermission?.id)}</div></div><div class="permission-grid"><div class="permission"><span>${permissions.show_documents ? uiIcon("check", 14) : "—"}</span><span><strong>Documenti</strong><span>Documenti abilitati</span></span></div><div class="permission"><span>${permissions.show_utilities ? uiIcon("check", 14) : "—"}</span><span><strong>Utenze</strong><span>Bollettini e scadenze</span></span></div><div class="permission"><span>${permissions.show_maintenance ? uiIcon("check", 14) : "—"}</span><span><strong>Interventi</strong><span>Stato manutenzioni</span></span></div><div class="permission"><span>${permissions.allow_payment_upload ? uiIcon("check", 14) : "—"}</span><span><strong>Contabili</strong><span>Caricamento pagamento</span></span></div></div></div>`;
   }
 
   function renderFinance() {
@@ -1008,17 +1044,17 @@
     const income = totalFor("income", month);
     const costs = totalFor("expense", month);
     const scheduledRent = expectedMonthlyRent();
-    return `<div class="kpi-grid"><article class="kpi-card"><div class="kpi-label"><span>Canoni attesi</span><span>↗</span></div><div class="kpi-value">${money(scheduledRent)}</div><div class="kpi-note">contratti attivi</div></article><article class="kpi-card"><div class="kpi-label"><span>Entrate mese</span><span>✓</span></div><div class="kpi-value">${money(income)}</div><div class="kpi-note">già registrate</div></article><article class="kpi-card"><div class="kpi-label"><span>Uscite mese</span><span>↘</span></div><div class="kpi-value">${money(costs)}</div><div class="kpi-note">già registrate</div></article><article class="kpi-card highlight"><div class="kpi-label"><span>Saldo mese</span><span>◒</span></div><div class="kpi-value">${money(income - costs)}</div><div class="kpi-note">movimenti effettivi</div></article><article class="kpi-card"><div class="kpi-label"><span>Valore stimato</span><span>⌂</span></div><div class="kpi-value">${money(state.data.properties.reduce((sum,p) => sum + Number(p.estimated_value || 0), 0))}</div><div class="kpi-note">portafoglio immobiliare</div></article></div><section class="panel" style="margin-top:20px"><div class="panel-head"><div><h2>Movimenti</h2><p>Inserisci ogni entrata e uscita; poi esporta un CSV per consulente o commercialista.</p></div><button class="button small" data-action="add-financial">+ Registra movimento</button></div>${financeTable(entries)}</section>`;
+    return `<div class="kpi-grid"><article class="kpi-card"><div class="kpi-label"><span>Canoni attesi</span><span class="kpi-icon">${uiIcon("arrowUpRight", 18)}</span></div><div class="kpi-value">${money(scheduledRent)}</div><div class="kpi-note">contratti attivi</div></article><article class="kpi-card"><div class="kpi-label"><span>Entrate mese</span><span class="kpi-icon">${uiIcon("checkCircle", 18)}</span></div><div class="kpi-value">${money(income)}</div><div class="kpi-note">già registrate</div></article><article class="kpi-card"><div class="kpi-label"><span>Uscite mese</span><span class="kpi-icon">${uiIcon("arrowDownRight", 18)}</span></div><div class="kpi-value">${money(costs)}</div><div class="kpi-note">già registrate</div></article><article class="kpi-card highlight"><div class="kpi-label"><span>Saldo mese</span><span class="kpi-icon">${uiIcon("pieChart", 18)}</span></div><div class="kpi-value">${money(income - costs)}</div><div class="kpi-note">movimenti effettivi</div></article><article class="kpi-card"><div class="kpi-label"><span>Valore stimato</span><span class="kpi-icon">${uiIcon("building", 18)}</span></div><div class="kpi-value">${money(state.data.properties.reduce((sum,p) => sum + Number(p.estimated_value || 0), 0))}</div><div class="kpi-note">portafoglio immobiliare</div></article></div><section class="panel" style="margin-top:20px"><div class="panel-head"><div><h2>Movimenti</h2><p>Inserisci ogni entrata e uscita; poi esporta un CSV per consulente o commercialista.</p></div><button class="button small" data-action="add-financial">${uiIcon("plus", 15)} Registra movimento</button></div>${financeTable(entries)}</section>`;
   }
 
   function financeTable(entries) {
-    return entries.length ? `<div class="table-wrap"><table><thead><tr><th>Data</th><th>Immobile</th><th>Categoria</th><th>Tipo</th><th>Importo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${entries.map((entry) => `<tr><td>${dateLabel(entry.date)}</td><td><strong>${esc(getProperty(entry.property_id)?.name || "Generale")}</strong></td><td>${esc(entry.category)}</td><td>${entry.direction === "income" ? "Entrata" : "Uscita"}</td><td class="number" style="color:${entry.direction === "income" ? "#087468" : "#b54d4d"}">${entry.direction === "income" ? "+" : "−"} ${money(entry.amount)}</td><td>${badge(entry.status || "paid")}</td><td>${deleteButton("financial", entry.id)}</td></tr>`).join("")}</tbody></table></div>` : empty("€", "Nessun movimento", "Registra il primo costo o la prima entrata.");
+    return entries.length ? `<div class="table-wrap"><table><thead><tr><th>Data</th><th>Immobile</th><th>Categoria</th><th>Tipo</th><th>Importo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${entries.map((entry) => `<tr><td>${dateLabel(entry.date)}</td><td><strong>${esc(getProperty(entry.property_id)?.name || "Generale")}</strong></td><td>${esc(entry.category)}</td><td>${entry.direction === "income" ? "Entrata" : "Uscita"}</td><td class="number" style="color:${entry.direction === "income" ? "#087468" : "#b54d4d"}">${entry.direction === "income" ? "+" : "−"} ${money(entry.amount)}</td><td>${badge(entry.status || "paid")}</td><td>${deleteButton("financial", entry.id)}</td></tr>`).join("")}</tbody></table></div>` : empty("coins", "Nessun movimento", "Registra il primo costo o la prima entrata.");
   }
 
   function renderMaintenance() {
     const jobs = [...state.data.maintenance_jobs].sort((a, b) => String(b.scheduled_date).localeCompare(String(a.scheduled_date)));
     const providers = state.data.service_providers;
-    return `<div class="split"><section class="panel"><div class="panel-head"><div><h2>Interventi</h2><p>Lavoro svolto, costo e fornitore rimangono collegati alla proprietà.</p></div><button class="button small" data-action="add-maintenance">+ Intervento</button></div>${jobs.length ? maintenanceTable(jobs) : empty("⌁", "Nessun intervento", "Quando chiami un manutentore, registra qui attività e preventivo.")}</section><section class="panel"><div class="panel-head"><div><h2>Rubrica manutentori</h2><p>Elettricisti, idraulici, muratori e altri professionisti.</p></div><button class="button secondary small" data-action="add-provider">+ Fornitore</button></div><div class="task-list">${providers.length ? providers.map(providerCard).join("") : empty("♙", "Rubrica vuota", "Aggiungi il primo manutentore.")}</div></section></div>`;
+    return `<div class="split"><section class="panel"><div class="panel-head"><div><h2>Interventi</h2><p>Lavoro svolto, costo e fornitore rimangono collegati alla proprietà.</p></div><button class="button small" data-action="add-maintenance">${uiIcon("plus", 15)} Intervento</button></div>${jobs.length ? maintenanceTable(jobs) : empty("wrench", "Nessun intervento", "Quando chiami un manutentore, registra qui attività e preventivo.")}</section><section class="panel"><div class="panel-head"><div><h2>Rubrica manutentori</h2><p>Elettricisti, idraulici, muratori e altri professionisti.</p></div><button class="button secondary small" data-action="add-provider">${uiIcon("plus", 15)} Fornitore</button></div><div class="task-list">${providers.length ? providers.map(providerCard).join("") : empty("users", "Rubrica vuota", "Aggiungi il primo manutentore.")}</div></section></div>`;
   }
 
   function maintenanceTable(jobs) {
@@ -1036,12 +1072,12 @@
         .map((profile) => [profile.id, profile])
     ).values()];
     const providers = state.data.service_providers;
-    return `<div class="split"><section class="panel"><div class="panel-head"><div><h2>Inquilini</h2><p>Apri una scheda per consultare contratto, canoni e bollette di ogni persona.</p></div><button class="button small" data-action="add-tenant">+ Nuovo inquilino</button></div>${tenants.length ? `<div class="table-wrap"><table><thead><tr><th>Inquilino</th><th>Immobile</th><th>Contatto</th><th>Profilo</th><th>Azioni</th></tr></thead><tbody>${tenants.map((tenant) => { const properties = tenantProperties(tenant.id); return `<tr><td><strong>${esc(tenant.display_name)}</strong><br><small>@${esc(tenant.username || "utente")}</small></td><td>${properties.length ? properties.map((property) => esc(property.name)).join("<br>") : "—"}</td><td>${esc(tenant.phone || tenant.email || "—")}</td><td>${badge("active")}</td><td><div class="panel-actions"><button class="button secondary small" data-action="open-tenant" data-tenant-id="${esc(tenant.id)}">Apri scheda</button>${deleteButton("tenant", tenant.id)}</div></td></tr>`; }).join("")}</tbody></table></div>` : empty("♙", "Nessun inquilino", "Crea un profilo e poi collegalo a un contratto.")}</section><section class="panel"><div class="panel-head"><div><h2>Manutentori</h2><p>Profili professionali riutilizzabili per ogni casa.</p></div><button class="button secondary small" data-action="add-provider">+ Fornitore</button></div><div class="task-list">${providers.length ? providers.map(providerCard).join("") : empty("⌁", "Nessun manutentore", "Aggiungi la tua rubrica di fiducia.")}</div></section></div>`;
+    return `<div class="split"><section class="panel"><div class="panel-head"><div><h2>Inquilini</h2><p>Apri una scheda per consultare contratto, canoni e bollette di ogni persona.</p></div><button class="button small" data-action="add-tenant">${uiIcon("plus", 15)} Nuovo inquilino</button></div>${tenants.length ? `<div class="table-wrap"><table><thead><tr><th>Inquilino</th><th>Immobile</th><th>Contatto</th><th>Profilo</th><th>Azioni</th></tr></thead><tbody>${tenants.map((tenant) => { const properties = tenantProperties(tenant.id); return `<tr><td><strong>${esc(tenant.display_name)}</strong><br><small>@${esc(tenant.username || "utente")}</small></td><td>${properties.length ? properties.map((property) => esc(property.name)).join("<br>") : "—"}</td><td>${esc(tenant.phone || tenant.email || "—")}</td><td>${badge("active")}</td><td><div class="panel-actions"><button class="button secondary small" data-action="open-tenant" data-tenant-id="${esc(tenant.id)}">Apri scheda</button>${deleteButton("tenant", tenant.id)}</div></td></tr>`; }).join("")}</tbody></table></div>` : empty("users", "Nessun inquilino", "Crea un profilo e poi collegalo a un contratto.")}</section><section class="panel"><div class="panel-head"><div><h2>Manutentori</h2><p>Profili professionali riutilizzabili per ogni casa.</p></div><button class="button secondary small" data-action="add-provider">${uiIcon("plus", 15)} Fornitore</button></div><div class="task-list">${providers.length ? providers.map(providerCard).join("") : empty("wrench", "Nessun manutentore", "Aggiungi la tua rubrica di fiducia.")}</div></section></div>`;
   }
 
   function renderTenantDetail() {
     const tenant = getProfile(state.selectedTenantId);
-    if (!tenant) return `<section class="panel">${empty("♙", "Inquilino non trovato", "Torna all’elenco e seleziona una scheda valida.")}<div style="padding:0 20px 20px"><button class="button secondary" data-action="navigate" data-view="people">← Torna a Persone</button></div></section>`;
+    if (!tenant) return `<section class="panel">${empty("users", "Inquilino non trovato", "Torna all’elenco e seleziona una scheda valida.")}<div style="padding:0 20px 20px"><button class="button secondary" data-action="navigate" data-view="people">${uiIcon("arrowLeft", 16)} Torna a Persone</button></div></section>`;
 
     const leases = getTenantLeases(tenant.id).sort((a, b) => String(b.start_date).localeCompare(String(a.start_date)));
     const ledger = leases.flatMap(leaseRentLedger).sort((a, b) => String(b.period).localeCompare(String(a.period)));
@@ -1058,20 +1094,20 @@
       .filter((bill) => propertyIds.includes(bill.property_id) && utilityIds.has(bill.utility_id))
       .sort((a, b) => String(b.period).localeCompare(String(a.period)));
     const utilitySection = tenantUtilities.length
-      ? `<section class="panel"><div class="panel-head"><div><h2>Bollette dell’inquilino</h2><p>Utenze intestate all’inquilino o riaddebitate dall’amministratore.</p></div></div><div class="callout history-note">Le bollette sono associate all’immobile, non a un singolo coinquilino: se il contratto è condiviso lo stato vale per la casa.</div>${bills.length ? `<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Immobile</th><th>Utenza</th><th>Scadenza</th><th>Importo</th><th>Stato</th><th></th></tr></thead><tbody>${bills.map((bill) => tenantUtilityBillRow(bill, tenantUtilities)).join("")}</tbody></table></div>` : empty("▤", "Nessuna bolletta registrata", "Le bollette collegate a queste utenze compariranno qui.")}</section>`
-      : `<section class="panel">${empty("⚡", "Nessuna utenza riaddebitata", "Nella scheda dell’immobile indica quali utenze vengono riaddebitate all’inquilino.")}</section>`;
+      ? `<section class="panel"><div class="panel-head"><div><h2>Bollette dell’inquilino</h2><p>Utenze intestate all’inquilino o riaddebitate dall’amministratore.</p></div></div><div class="callout history-note">Le bollette sono associate all’immobile, non a un singolo coinquilino: se il contratto è condiviso lo stato vale per la casa.</div>${bills.length ? `<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Immobile</th><th>Utenza</th><th>Scadenza</th><th>Importo</th><th>Stato</th><th></th></tr></thead><tbody>${bills.map((bill) => tenantUtilityBillRow(bill, tenantUtilities)).join("")}</tbody></table></div>` : empty("fileText", "Nessuna bolletta registrata", "Le bollette collegate a queste utenze compariranno qui.")}</section>`
+      : `<section class="panel">${empty("utility", "Nessuna utenza riaddebitata", "Nella scheda dell’immobile indica quali utenze vengono riaddebitate all’inquilino.")}</section>`;
 
     return `<div class="stack">
-      <button class="button ghost small back-link" data-action="navigate" data-view="people">← Torna a Persone</button>
-      <section class="property-hero tenant-profile-hero"><div><div class="eyebrow">SCHEDA INQUILINO</div><h2>${esc(tenant.display_name)}</h2><p>${esc(tenant.email || tenant.username || "Profilo inquilino")}${tenant.phone ? ` · ${esc(tenant.phone)}` : ""}</p><div class="property-hero-meta"><span class="hero-pill">${leases.length} ${leases.length === 1 ? "contratto" : "contratti"}</span><span class="hero-pill">${propertyIds.length} ${propertyIds.length === 1 ? "immobile" : "immobili"}</span></div></div><div class="panel-actions">${activeLeases.length ? `<button class="button hero-action" data-action="add-payment" data-property-id="${esc(activeLeases[0].property_id)}" data-lease-id="${esc(activeLeases[0].id)}">+ Registra canone</button>` : ""}${deleteButton("tenant", tenant.id)}</div></section>
+      <button class="button ghost small back-link" data-action="navigate" data-view="people">${uiIcon("arrowLeft", 16)} Torna a Persone</button>
+      <section class="property-hero tenant-profile-hero"><div><div class="eyebrow">SCHEDA INQUILINO</div><h2>${esc(tenant.display_name)}</h2><p>${esc(tenant.email || tenant.username || "Profilo inquilino")}${tenant.phone ? ` · ${esc(tenant.phone)}` : ""}</p><div class="property-hero-meta"><span class="hero-pill">${leases.length} ${leases.length === 1 ? "contratto" : "contratti"}</span><span class="hero-pill">${propertyIds.length} ${propertyIds.length === 1 ? "immobile" : "immobili"}</span></div></div><div class="panel-actions">${activeLeases.length ? `<button class="button hero-action" data-action="add-payment" data-property-id="${esc(activeLeases[0].property_id)}" data-lease-id="${esc(activeLeases[0].id)}">${uiIcon("plus", 15)} Registra canone</button>` : ""}${deleteButton("tenant", tenant.id)}</div></section>
       <section class="detail-grid tenant-summary-grid">
         <article class="data-tile"><span>Canone mensile attivo</span><strong>${activeLeases.length ? money(activeRent) : "Nessun contratto attivo"}</strong></article>
         <article class="data-tile"><span>Fine contratto più vicina</span><strong>${nextEnd ? dateLabel(nextEnd) : "—"}</strong></article>
         <article class="data-tile"><span>Mesi pagati / scaduti</span><strong>${paidRows.length} / ${dueRows.length}</strong></article>
         <article class="data-tile"><span>Residuo atteso da verificare</span><strong>${money(outstanding)}</strong></article>
       </section>
-      <section class="panel"><div class="panel-head"><div><h2>Contratti</h2><p>Data di ingresso, scadenza e importo pattuito.</p></div></div>${leases.length ? `<div class="contract-list">${leases.map((lease) => `<article class="contract-summary"><div class="section-head"><div><h3>${esc(lease.contract_reference || getProperty(lease.property_id)?.name || "Contratto di locazione")}</h3><p>${esc(getProperty(lease.property_id)?.name || "Immobile non disponibile")} · ${dateLabel(lease.start_date)} — ${dateLabel(lease.end_date)}</p></div><div class="panel-actions">${badge(lease.status === "active" ? "active" : lease.status)}${deleteButton("lease", lease.id)}</div></div><div class="detail-grid"><article class="data-tile"><span>Canone mensile</span><strong>${money(lease.monthly_rent)}</strong></article><article class="data-tile"><span>Deposito</span><strong>${money(lease.deposit)}</strong></article><article class="data-tile"><span>Scadenza mensile</span><strong>Giorno ${esc(lease.due_day || "—")}</strong></article></div></article>`).join("")}</div>` : empty("▤", "Nessun contratto collegato", "Collega l’inquilino a un contratto dalla scheda dell’immobile.")}</section>
-      <section class="panel"><div class="panel-head"><div><h2>Storico canoni</h2><p>Una riga per ogni mese del contratto. I mesi senza registrazione sono da verificare.</p></div></div>${ledger.length ? `<div class="callout history-note">Se più inquilini condividono lo stesso contratto, importo e stato del canone sono riferiti al contratto condiviso.</div><div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Immobile</th><th>Scadenza</th><th>Dovuto</th><th>Pagato</th><th>Stato</th><th></th></tr></thead><tbody>${ledger.map((row) => rentLedgerRow(row)).join("")}</tbody></table></div>` : empty("€", "Nessuno storico canoni", "Le rate mensili compariranno qui quando è presente un contratto.")}</section>
+      <section class="panel"><div class="panel-head"><div><h2>Contratti</h2><p>Data di ingresso, scadenza e importo pattuito.</p></div></div>${leases.length ? `<div class="contract-list">${leases.map((lease) => `<article class="contract-summary"><div class="section-head"><div><h3>${esc(lease.contract_reference || getProperty(lease.property_id)?.name || "Contratto di locazione")}</h3><p>${esc(getProperty(lease.property_id)?.name || "Immobile non disponibile")} · ${dateLabel(lease.start_date)} — ${dateLabel(lease.end_date)}</p></div><div class="panel-actions">${badge(lease.status === "active" ? "active" : lease.status)}${deleteButton("lease", lease.id)}</div></div><div class="detail-grid"><article class="data-tile"><span>Canone mensile</span><strong>${money(lease.monthly_rent)}</strong></article><article class="data-tile"><span>Deposito</span><strong>${money(lease.deposit)}</strong></article><article class="data-tile"><span>Scadenza mensile</span><strong>Giorno ${esc(lease.due_day || "—")}</strong></article></div></article>`).join("")}</div>` : empty("fileText", "Nessun contratto collegato", "Collega l’inquilino a un contratto dalla scheda dell’immobile.")}</section>
+      <section class="panel"><div class="panel-head"><div><h2>Storico canoni</h2><p>Una riga per ogni mese del contratto. I mesi senza registrazione sono da verificare.</p></div></div>${ledger.length ? `<div class="callout history-note">Se più inquilini condividono lo stesso contratto, importo e stato del canone sono riferiti al contratto condiviso.</div><div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Immobile</th><th>Scadenza</th><th>Dovuto</th><th>Pagato</th><th>Stato</th><th></th></tr></thead><tbody>${ledger.map((row) => rentLedgerRow(row)).join("")}</tbody></table></div>` : empty("coins", "Nessuno storico canoni", "Le rate mensili compariranno qui quando è presente un contratto.")}</section>
       ${utilitySection}
     </div>`;
   }
@@ -1107,12 +1143,12 @@
         <section class="delete-group"><div class="section-head"><div><h3>Inquilini</h3><p>Rimuove accesso e profilo; i pagamenti storici restano anonimizzati.</p></div></div>${deleteManagementTable(tenants, "tenant")}</section>
         <section class="delete-group"><div class="section-head"><div><h3>Immobili</h3><p>Elimina anche contratti, canoni, utenze, documenti e interventi collegati.</p></div></div>${deleteManagementTable(state.data.properties, "property")}</section>
       </div><div class="callout warning delete-warning">La cancellazione è permanente. Per gli immobili, i movimenti economici collegati restano nello storico senza l’associazione alla casa.</div></section>
-      <div class="split"><section class="panel pad"><div class="section-head"><div><h2>Stato della piattaforma</h2><p>Connessione e archivio dati.</p></div></div><div class="detail-list"><div class="detail-list-row"><span>Modalità attuale</span><strong>${isDemo() ? "Demo locale" : "Backend collegato"}</strong></div><div class="detail-list-row"><span>Autenticazione</span><strong>${supabaseClient ? "Configurata" : "Da configurare"}</strong></div><div class="detail-list-row"><span>Archivio documenti</span><strong>${supabaseClient ? "Storage privato" : "Solo metadati demo"}</strong></div><div class="detail-list-row"><span>Il tuo ruolo</span><strong>${esc(state.profile?.role === "admin" ? "Admin" : state.profile?.role || "Locale")}</strong></div></div><div class="callout" style="margin-top:18px">In modalità demo i dati restano in questo browser. Con Supabase, l’accesso ai dati condivisi è verificato dalle policy del database.</div></section><section class="panel pad"><div class="section-head"><div><h2>Azioni</h2><p>Esportazione e gestione della sessione.</p></div></div><div class="stack"><button class="button secondary full" data-action="export-csv">⇩ Esporta tutti i dati in CSV</button><button class="button secondary full" data-action="show-architecture">◌ Vedi architettura</button>${isDemo() ? `<button class="button danger full" data-action="reset-demo">Ripristina dati demo</button>` : `<button class="button danger full" data-action="logout">Esci dall’account</button>`}</div></section></div>
+      <div class="split"><section class="panel pad"><div class="section-head"><div><h2>Stato della piattaforma</h2><p>Connessione e archivio dati.</p></div></div><div class="detail-list"><div class="detail-list-row"><span>Modalità attuale</span><strong>${isDemo() ? "Demo locale" : "Backend collegato"}</strong></div><div class="detail-list-row"><span>Autenticazione</span><strong>${supabaseClient ? "Configurata" : "Da configurare"}</strong></div><div class="detail-list-row"><span>Archivio documenti</span><strong>${supabaseClient ? "Storage privato" : "Solo metadati demo"}</strong></div><div class="detail-list-row"><span>Il tuo ruolo</span><strong>${esc(state.profile?.role === "admin" ? "Admin" : state.profile?.role || "Locale")}</strong></div></div><div class="callout" style="margin-top:18px">In modalità demo i dati restano in questo browser. Con Supabase, l’accesso ai dati condivisi è verificato dalle policy del database.</div></section><section class="panel pad"><div class="section-head"><div><h2>Azioni</h2><p>Esportazione e gestione della sessione.</p></div></div><div class="stack"><button class="button secondary full" data-action="export-csv">${uiIcon("download", 16)} Esporta tutti i dati in CSV</button><button class="button secondary full" data-action="show-architecture">${uiIcon("dashboard", 16)} Vedi architettura</button>${isDemo() ? `<button class="button danger full" data-action="reset-demo">Ripristina dati demo</button>` : `<button class="button danger full" data-action="logout">Esci dall’account</button>`}</div></section></div>
     </div>`;
   }
 
   function deleteManagementTable(items, kind) {
-    if (!items.length) return empty(kind === "tenant" ? "♙" : "⌂", "Nessuna voce da gestire", "Non ci sono elementi disponibili per la cancellazione.");
+    if (!items.length) return empty(kind === "tenant" ? "users" : "home", "Nessuna voce da gestire", "Non ci sono elementi disponibili per la cancellazione.");
     const rows = kind === "tenant"
       ? items.map((item) => `<tr><td><strong>${esc(item.display_name)}</strong><br><small>${esc(item.email || item.username || "")}</small></td><td><button class="button danger small" data-action="request-delete" data-delete-type="tenant" data-record-id="${esc(item.id)}">Elimina</button></td></tr>`).join("")
       : items.map((item) => `<tr><td><strong>${esc(item.name)}</strong><br><small>${esc([item.address, item.city].filter(Boolean).join(", "))}</small></td><td><button class="button danger small" data-action="request-delete" data-delete-type="property" data-record-id="${esc(item.id)}">Elimina</button></td></tr>`).join("");
@@ -1184,7 +1220,7 @@
     const provider = state.data.service_providers.find((item) => item.profile_id === state.sessionUser?.id);
     const jobs = provider ? state.data.maintenance_jobs.filter((job) => job.provider_id === provider.id).sort((a, b) => String(b.scheduled_date).localeCompare(String(a.scheduled_date))) : [];
     document.title = `${APP_NAME} · Area manutentore`;
-    app.innerHTML = `<main class="tenant-shell"><header class="tenant-topbar"><div class="brand brand-inverse">${brandMark()}<span>${esc(APP_NAME)}</span></div><button class="button secondary small" data-action="logout">Esci</button></header><section class="tenant-main"><div class="tenant-welcome"><div><p class="eyebrow">AREA MANUTENTORE</p><h1>${esc(state.profile?.display_name || "Manutentore")}</h1><p>Visualizzi solo gli interventi che ti sono stati assegnati.</p></div></div><section class="panel"><div class="panel-head"><div><h2>I miei interventi</h2><p>Dettagli operativi, data e stato.</p></div></div>${jobs.length ? `<div class="table-wrap"><table><thead><tr><th>Intervento</th><th>Categoria</th><th>Data</th><th>Stato</th></tr></thead><tbody>${jobs.map((job) => `<tr><td><strong>${esc(job.title)}</strong><br><small>${esc(job.notes || "")}</small></td><td>${esc(job.category || "—")}</td><td>${dateLabel(job.completed_date || job.scheduled_date)}</td><td>${badge(job.status)}</td></tr>`).join("")}</tbody></table></div>` : empty("⌁", "Nessun intervento assegnato", provider ? "Quando l’amministratore ti assegnerà un intervento, lo vedrai qui." : "L’amministratore deve collegare il tuo profilo alla scheda manutentore.")}</section></section></main>`;
+    app.innerHTML = `<main class="tenant-shell"><header class="tenant-topbar"><div class="brand brand-inverse">${brandMark()}<span>${esc(APP_NAME)}</span></div><button class="button secondary small" data-action="logout">Esci</button></header><section class="tenant-main"><div class="tenant-welcome"><div><p class="eyebrow">AREA MANUTENTORE</p><h1>${esc(state.profile?.display_name || "Manutentore")}</h1><p>Visualizzi solo gli interventi che ti sono stati assegnati.</p></div></div><section class="panel"><div class="panel-head"><div><h2>I miei interventi</h2><p>Dettagli operativi, data e stato.</p></div></div>${jobs.length ? `<div class="table-wrap"><table><thead><tr><th>Intervento</th><th>Categoria</th><th>Data</th><th>Stato</th></tr></thead><tbody>${jobs.map((job) => `<tr><td><strong>${esc(job.title)}</strong><br><small>${esc(job.notes || "")}</small></td><td>${esc(job.category || "—")}</td><td>${dateLabel(job.completed_date || job.scheduled_date)}</td><td>${badge(job.status)}</td></tr>`).join("")}</tbody></table></div>` : empty("wrench", "Nessun intervento assegnato", provider ? "Quando l’amministratore ti assegnerà un intervento, lo vedrai qui." : "L’amministratore deve collegare il tuo profilo alla scheda manutentore.")}</section></section></main>`;
   }
 
   function renderTenantPortal() {
@@ -1194,7 +1230,7 @@
     const property = properties[0];
     document.title = `${APP_NAME} · Area inquilino`;
     if (!property) {
-      app.innerHTML = `<main class="tenant-shell"><header class="tenant-topbar"><div class="brand brand-inverse">${brandMark()}<span>${esc(APP_NAME)}</span></div><button class="button secondary small" data-action="logout">Esci</button></header><section class="tenant-main"><div class="panel">${empty("⌂", "Nessun immobile associato", "Chiedi all’amministratore di collegare il tuo profilo a un contratto attivo.")}</div></section></main>`;
+      app.innerHTML = `<main class="tenant-shell"><header class="tenant-topbar"><div class="brand brand-inverse">${brandMark()}<span>${esc(APP_NAME)}</span></div><button class="button secondary small" data-action="logout">Esci</button></header><section class="tenant-main"><div class="panel">${empty("home", "Nessun immobile associato", "Chiedi all’amministratore di collegare il tuo profilo a un contratto attivo.")}</div></section></main>`;
       return;
     }
     const lease = getPrimaryLease(property.id);
@@ -1211,20 +1247,20 @@
         <section class="tenant-main">
           <div class="tenant-welcome"><div><p class="eyebrow">Area inquilino</p><h1>La tua abitazione, tutto in ordine.</h1><p>Consulta solo le informazioni che l’amministratore ha reso disponibili per te.</p></div></div>
           <div class="tenant-grid">
-            <section class="rent-card"><p class="eyebrow">Canone ${esc(monthLabel(currentPayment?.period || isoMonth()))}</p><h2>${currentPayment?.status === "paid" ? "Pagamento registrato" : "Prossimo pagamento"}</h2><div class="rent-amount">${money(currentPayment?.amount_due || lease?.monthly_rent || 0)}</div><p>Scadenza ${dateLabel(currentPayment?.due_date || `${isoMonth()}-${String(lease?.due_day || 5).padStart(2, "0")}`)} · Stato: ${statusLabel(currentPayment?.status || "pending")}</p><div class="rent-actions">${permissions.allow_payment_upload ? `<button class="button" data-action="upload-payment" data-payment-id="${currentPayment?.id || ""}" data-property-id="${property.id}">⇧ Carica contabile</button>` : ""}${currentPayment?.receipt_name ? `<span class="button secondary">✓ ${esc(currentPayment.receipt_name)}</span>` : ""}</div></section>
+            <section class="rent-card"><p class="eyebrow">Canone ${esc(monthLabel(currentPayment?.period || isoMonth()))}</p><h2>${currentPayment?.status === "paid" ? "Pagamento registrato" : "Prossimo pagamento"}</h2><div class="rent-amount">${money(currentPayment?.amount_due || lease?.monthly_rent || 0)}</div><p>Scadenza ${dateLabel(currentPayment?.due_date || `${isoMonth()}-${String(lease?.due_day || 5).padStart(2, "0")}`)} · Stato: ${statusLabel(currentPayment?.status || "pending")}</p><div class="rent-actions">${permissions.allow_payment_upload ? `<button class="button" data-action="upload-payment" data-payment-id="${currentPayment?.id || ""}" data-property-id="${property.id}">${uiIcon("upload", 16)} Carica contabile</button>` : ""}${currentPayment?.receipt_name ? `<span class="button secondary">${uiIcon("checkCircle", 15)} ${esc(currentPayment.receipt_name)}</span>` : ""}</div></section>
             <section class="panel tenant-address"><p class="eyebrow">Immobile</p><h3>${esc(property.name)}</h3><p>${esc(property.address)}, ${esc(property.postal_code || "")} ${esc(property.city)}</p><dl><div><dt>Contratto</dt><dd>${lease ? dateLabel(lease.end_date) : "—"}</dd></div><div><dt>Canone</dt><dd>${money(lease?.monthly_rent || 0)}</dd></div></dl></section>
           </div>
           <div class="page-grid" style="margin-top:18px">
-            <section class="panel"><div class="panel-head"><div><h2>I tuoi pagamenti</h2><p>Storico dei canoni e contabili caricate.</p></div></div>${payments.length ? `<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Scadenza</th><th>Importo</th><th>Contabile</th><th>Stato</th></tr></thead><tbody>${payments.map((payment) => `<tr><td>${esc(monthLabel(payment.period))}</td><td>${dateLabel(payment.due_date)}</td><td class="number">${money(payment.amount_due)}</td><td>${payment.receipt_name ? esc(payment.receipt_name) : "—"}</td><td>${badge(payment.status)}</td></tr>`).join("")}</tbody></table></div>` : empty("€", "Nessun canone disponibile", "I prossimi pagamenti saranno indicati qui.")}</section>
-            <section class="panel"><div class="panel-head"><div><h2>Riepilogo accessi</h2><p>Contenuti abilitati dall’amministratore.</p></div></div><div class="task-list"><div class="task-row"><span class="property-avatar">▤</span><div class="task-copy"><strong>Documenti</strong><span>${permissions.show_documents ? `${docs.length} file disponibili` : "Non abilitati"}</span></div></div><div class="task-row"><span class="property-avatar">⚡</span><div class="task-copy"><strong>Utenze</strong><span>${permissions.show_utilities ? `${utilityBills.length} bollette visibili` : "Non abilitate"}</span></div></div><div class="task-row"><span class="property-avatar">⌁</span><div class="task-copy"><strong>Manutenzioni</strong><span>${permissions.show_maintenance ? `${jobs.length} interventi visibili` : "Non abilitate"}</span></div></div></div></section>
+            <section class="panel"><div class="panel-head"><div><h2>I tuoi pagamenti</h2><p>Storico dei canoni e contabili caricate.</p></div></div>${payments.length ? `<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Scadenza</th><th>Importo</th><th>Contabile</th><th>Stato</th></tr></thead><tbody>${payments.map((payment) => `<tr><td>${esc(monthLabel(payment.period))}</td><td>${dateLabel(payment.due_date)}</td><td class="number">${money(payment.amount_due)}</td><td>${payment.receipt_name ? esc(payment.receipt_name) : "—"}</td><td>${badge(payment.status)}</td></tr>`).join("")}</tbody></table></div>` : empty("coins", "Nessun canone disponibile", "I prossimi pagamenti saranno indicati qui.")}</section>
+            <section class="panel"><div class="panel-head"><div><h2>Riepilogo accessi</h2><p>Contenuti abilitati dall’amministratore.</p></div></div><div class="task-list"><div class="task-row"><span class="property-avatar">${uiIcon("fileText", 18)}</span><div class="task-copy"><strong>Documenti</strong><span>${permissions.show_documents ? `${docs.length} file disponibili` : "Non abilitati"}</span></div></div><div class="task-row"><span class="property-avatar">${uiIcon("utility", 18)}</span><div class="task-copy"><strong>Utenze</strong><span>${permissions.show_utilities ? `${utilityBills.length} bollette visibili` : "Non abilitate"}</span></div></div><div class="task-row"><span class="property-avatar">${uiIcon("wrench", 18)}</span><div class="task-copy"><strong>Manutenzioni</strong><span>${permissions.show_maintenance ? `${jobs.length} interventi visibili` : "Non abilitate"}</span></div></div></div></section>
           </div>
-          ${permissions.show_documents || permissions.show_utilities || permissions.show_maintenance ? `<div class="page-grid"><section class="panel"><div class="panel-head"><div><h2>Documenti e utenze</h2><p>Materiale condiviso per l’abitazione.</p></div></div>${permissions.show_documents ? `<div class="task-list">${docs.length ? docs.map((document) => `<article class="task-row"><span class="property-avatar">▤</span><div class="task-copy"><strong>${esc(document.name)}</strong><span>${esc(document.category)} · ${dateLabel(document.uploaded_at)}</span></div></article>`).join("") : `<p class="row-muted">Nessun documento condiviso.</p>`}</div>` : ""}${permissions.show_utilities ? `<div class="table-wrap" style="border-left:0;border-right:0;border-bottom:0"><table><thead><tr><th>Utenza</th><th>Periodo</th><th>Importo</th><th>Scadenza</th></tr></thead><tbody>${utilityBills.map((bill) => `<tr><td>${esc(utilities.find((utility) => utility.id === bill.utility_id)?.kind || "Utenza")}</td><td>${esc(monthLabel(bill.period))}</td><td class="number">${money(bill.amount)}</td><td>${dateLabel(bill.due_date)}</td></tr>`).join("")}</tbody></table></div>` : ""}</section><section class="panel"><div class="panel-head"><div><h2>Assistenza</h2><p>Per segnalazioni urgenti usa i riferimenti concordati con l’amministratore.</p></div></div><div class="task-list">${permissions.show_maintenance ? jobs.map((job) => taskRow(job)).join("") : `<article class="task-row"><span class="property-avatar">i</span><div class="task-copy"><strong>Visibilità degli interventi</strong><span>Le manutenzioni non sono attualmente condivise con il tuo profilo.</span></div></article>`}</div></section></div>` : ""}
+          ${permissions.show_documents || permissions.show_utilities || permissions.show_maintenance ? `<div class="page-grid"><section class="panel"><div class="panel-head"><div><h2>Documenti e utenze</h2><p>Materiale condiviso per l’abitazione.</p></div></div>${permissions.show_documents ? `<div class="task-list">${docs.length ? docs.map((document) => `<article class="task-row"><span class="property-avatar">${uiIcon("fileText", 18)}</span><div class="task-copy"><strong>${esc(document.name)}</strong><span>${esc(document.category)} · ${dateLabel(document.uploaded_at)}</span></div></article>`).join("") : `<p class="row-muted">Nessun documento condiviso.</p>`}</div>` : ""}${permissions.show_utilities ? `<div class="table-wrap" style="border-left:0;border-right:0;border-bottom:0"><table><thead><tr><th>Utenza</th><th>Periodo</th><th>Importo</th><th>Scadenza</th></tr></thead><tbody>${utilityBills.map((bill) => `<tr><td>${esc(utilities.find((utility) => utility.id === bill.utility_id)?.kind || "Utenza")}</td><td>${esc(monthLabel(bill.period))}</td><td class="number">${money(bill.amount)}</td><td>${dateLabel(bill.due_date)}</td></tr>`).join("")}</tbody></table></div>` : ""}</section><section class="panel"><div class="panel-head"><div><h2>Assistenza</h2><p>Per segnalazioni urgenti usa i riferimenti concordati con l’amministratore.</p></div></div><div class="task-list">${permissions.show_maintenance ? jobs.map((job) => taskRow(job)).join("") : `<article class="task-row"><span class="property-avatar">${uiIcon("info", 18)}</span><div class="task-copy"><strong>Visibilità degli interventi</strong><span>Le manutenzioni non sono attualmente condivise con il tuo profilo.</span></div></article>`}</div></section></div>` : ""}
         </section>
       </main>`;
   }
 
-  function empty(icon, title, description) {
-    return `<div class="empty"><div><div class="empty-icon">${icon}</div><strong>${esc(title)}</strong><p>${esc(description)}</p></div></div>`;
+  function empty(iconName, title, description) {
+    return `<div class="empty"><div><div class="empty-icon">${uiIcon(iconName, 30)}</div><strong>${esc(title)}</strong><p>${esc(description)}</p></div></div>`;
   }
 
   function render() {
