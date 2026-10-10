@@ -9,6 +9,8 @@
   const toastRegion = document.querySelector("#toast-region");
 
   let supabaseClient = null;
+  let pendingExcelImport = null;
+  let excelImporting = false;
   const supabasePublicKey = CONFIG.supabasePublishableKey || CONFIG.supabaseAnonKey;
   if (CONFIG.supabaseUrl && supabasePublicKey && window.supabase?.createClient) {
     supabaseClient = window.supabase.createClient(CONFIG.supabaseUrl, supabasePublicKey, {
@@ -1134,6 +1136,7 @@
   function renderSettings() {
     const tenants = [...new Map(state.data.profiles.filter((profile) => profile.role === "tenant").map((profile) => [profile.id, profile])).values()];
     return `<div class="stack">
+      ${renderExcelImportCard()}
       <section class="panel pad"><div class="section-head"><div><h2>Ruoli e permessi</h2><p>Gli accessi sono determinati dal ruolo dell’account e dalle autorizzazioni associate.</p></div></div><div class="role-grid">
         <article class="role-card role-admin"><div class="role-title"><span class="role-mark">A</span><div><h3>Admin</h3><small>Amministratore</small></div></div><p>Gestisce immobili, persone, contratti, canoni, utenze e impostazioni. Può eliminare inquilini o immobili dopo la verifica esplicita.</p></article>
         <article class="role-card"><div class="role-title"><span class="role-mark">I</span><div><h3>Inquilino</h3><small>Accesso personale</small></div></div><p>Consulta solo gli immobili e le sezioni abilitate dall’amministratore; può inviare le proprie contabili. Non può modificare o cancellare i dati gestionali.</p></article>
@@ -1145,6 +1148,474 @@
       </div><div class="callout warning delete-warning">La cancellazione è permanente. Per gli immobili, i movimenti economici collegati restano nello storico senza l’associazione alla casa.</div></section>
       <div class="split"><section class="panel pad"><div class="section-head"><div><h2>Stato della piattaforma</h2><p>Connessione e archivio dati.</p></div></div><div class="detail-list"><div class="detail-list-row"><span>Modalità attuale</span><strong>${isDemo() ? "Demo locale" : "Backend collegato"}</strong></div><div class="detail-list-row"><span>Autenticazione</span><strong>${supabaseClient ? "Configurata" : "Da configurare"}</strong></div><div class="detail-list-row"><span>Archivio documenti</span><strong>${supabaseClient ? "Storage privato" : "Solo metadati demo"}</strong></div><div class="detail-list-row"><span>Il tuo ruolo</span><strong>${esc(state.profile?.role === "admin" ? "Admin" : state.profile?.role || "Locale")}</strong></div></div><div class="callout" style="margin-top:18px">In modalità demo i dati restano in questo browser. Con Supabase, l’accesso ai dati condivisi è verificato dalle policy del database.</div></section><section class="panel pad"><div class="section-head"><div><h2>Azioni</h2><p>Esportazione e gestione della sessione.</p></div></div><div class="stack"><button class="button secondary full" data-action="export-csv">${uiIcon("download", 16)} Esporta tutti i dati in CSV</button><button class="button secondary full" data-action="show-architecture">${uiIcon("dashboard", 16)} Vedi architettura</button>${isDemo() ? `<button class="button danger full" data-action="reset-demo">Ripristina dati demo</button>` : `<button class="button danger full" data-action="logout">Esci dall’account</button>`}</div></section></div>
     </div>`;
+  }
+
+  function renderExcelImportCard() {
+    if (state.profile?.role !== "admin") return "";
+    const connected = Boolean(supabaseClient && state.sessionUser);
+    return `<section class="panel pad"><div class="section-head"><div><h2>Carica dati da Excel</h2><p>Importa immobili, utenze e bollette dal file di verifica, dopo aver marcato le righe da caricare.</p></div><button class="button" data-action="open-excel-import" ${connected ? "" : "disabled"}>Scegli file Excel</button></div><p class="small-note">${connected ? "L’importazione mostra prima un riepilogo, ignora i duplicati e salva nel database Supabase." : "Per importare serve una sessione Admin collegata a Supabase."} Contratti, inquilini, spese aggregate e proposte di quote non vengono creati automaticamente.</p></section>`;
+  }
+
+  function importText(value) {
+    return String(value ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLocaleLowerCase("it-IT")
+      .replace(/\s+/g, " ");
+  }
+
+  function excelValue(row, header) {
+    return row?.values?.[header] ?? "";
+  }
+
+  function excelDecisionYes(value) {
+    return ["si", "s", "yes", "y", "importa"].includes(importText(value));
+  }
+
+  function importNumber(value) {
+    if (typeof value === "number") return Number.isFinite(value) ? value : null;
+    if (value === null || value === undefined || String(value).trim() === "") return null;
+    let text = String(value).trim().replace(/[€\s]/g, "");
+    if (text.includes(",") && text.includes(".")) text = text.replaceAll(".", "").replace(",", ".");
+    else if (/^\d{1,3}(\.\d{3})+$/.test(text)) text = text.replaceAll(".", "");
+    else text = text.replace(",", ".");
+    const number = Number(text);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function importDate(value) {
+    if (value instanceof Date && !Number.isNaN(value.valueOf())) {
+      return value.getFullYear() + "-" + String(value.getMonth() + 1).padStart(2, "0") + "-" + String(value.getDate()).padStart(2, "0");
+    }
+    if (typeof value === "number" && window.XLSX?.SSF?.parse_date_code) {
+      const parts = window.XLSX.SSF.parse_date_code(value);
+      if (parts) return parts.y + "-" + String(parts.m).padStart(2, "0") + "-" + String(parts.d).padStart(2, "0");
+    }
+    const text = String(value ?? "").trim();
+    const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (iso) return iso[1] + "-" + String(iso[2]).padStart(2, "0") + "-" + String(iso[3]).padStart(2, "0");
+    const italian = text.match(/^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/);
+    if (italian) return italian[3] + "-" + String(italian[2]).padStart(2, "0") + "-" + String(italian[1]).padStart(2, "0");
+    return "";
+  }
+
+  async function stableExcelId(namespace, key) {
+    if (!window.crypto?.subtle) throw new Error("Il browser non supporta l’importazione sicura. Usa il sito aggiornato con connessione HTTPS.");
+    const input = new TextEncoder().encode(namespace + "|" + key);
+    const digest = new Uint8Array(await window.crypto.subtle.digest("SHA-256", input));
+    const bytes = [...digest.slice(0, 16)];
+    bytes[6] = (bytes[6] & 0x0f) | 0x80;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = bytes.map((value) => value.toString(16).padStart(2, "0")).join("");
+    return hex.slice(0, 8) + "-" + hex.slice(8, 12) + "-" + hex.slice(12, 16) + "-" + hex.slice(16, 20) + "-" + hex.slice(20, 32);
+  }
+
+  function importPropertyStatus(value) {
+    const status = importText(value);
+    const map = { rented: "rented", fittata: "rented", vacant: "vacant", sfitta: "vacant", personal: "personal", personale: "personal", maintenance: "maintenance", "in manutenzione": "maintenance" };
+    return map[status] || "";
+  }
+
+  function importBillStatus(value) {
+    const status = importText(value);
+    const map = { pending: "pending", "da pagare": "pending", paid: "paid", pagato: "paid", partial: "partial", parziale: "partial", late: "late", "in ritardo": "late", cancelled: "cancelled", annullato: "cancelled" };
+    return map[status] || "";
+  }
+
+  function importPropertyKey(property) {
+    return [property.name, property.address, property.city].map(importText).join("|");
+  }
+
+  function importAccountDuplicate(saved, next) {
+    if (saved.property_id !== next.property_id ||
+        importText(saved.kind) !== importText(next.kind) ||
+        importText(saved.provider) !== importText(next.provider)) return false;
+    const oldCode = importText(saved.contract_code);
+    const newCode = importText(next.contract_code);
+    return !oldCode || !newCode || oldCode === newCode;
+  }
+
+  function importBillDuplicate(saved, next) {
+    return saved.utility_id === next.utility_id &&
+      String(saved.period || "").slice(0, 7) === next.period.slice(0, 7) &&
+      Number(saved.amount) === Number(next.amount);
+  }
+
+  function markImportRow(row, status, reason, ready = false, item = null) {
+    row.status = status;
+    row.reason = reason || "";
+    row.ready = ready;
+    row.item = item;
+  }
+
+  function findImportProperty(name, plan) {
+    const needle = importText(name);
+    if (!needle) return { property: null, issue: "Manca il nome dell’immobile candidato." };
+    const candidates = [
+      ...state.data.properties,
+      ...plan.properties.filter((row) => row.ready).map((row) => row.item)
+    ].filter((property) => importText(property.name) === needle);
+    const unique = [...new Map(candidates.map((property) => [property.id, property])).values()];
+    if (unique.length === 1) return { property: unique[0], issue: "" };
+    if (unique.length > 1) return { property: null, issue: "Il nome corrisponde a più immobili: verifica il collegamento." };
+    return { property: null, issue: "Immobile non trovato: prima completa o importa la riga dell’immobile." };
+  }
+
+  function classifyExcelImport(plan) {
+    const savedPropertyKeys = new Set(state.data.properties.map(importPropertyKey));
+    const filePropertyKeys = new Set();
+    for (const row of plan.properties) {
+      if (row.imported) {
+        markImportRow(row, "Importata", "Già salvata in questa operazione.");
+        continue;
+      }
+      if (row.alreadyPresent) {
+        markImportRow(row, "Già presente", "La stessa riga è stata salvata da un’altra sessione Admin.");
+        continue;
+      }
+      if (row.failure) {
+        markImportRow(row, "Errore", row.failure);
+        continue;
+      }
+      if (!excelDecisionYes(excelValue(row, "Decisione importazione"))) {
+        markImportRow(row, "Non selezionata", "Imposta «Sì» nella colonna Decisione importazione per includerla.");
+        continue;
+      }
+      const name = String(excelValue(row, "Nome · properties.name") || "").trim();
+      const address = String(excelValue(row, "Indirizzo · properties.address") || "").trim();
+      const city = String(excelValue(row, "Comune · properties.city") || "").trim();
+      const type = String(excelValue(row, "Tipologia · properties.type") || "").trim();
+      const status = importPropertyStatus(excelValue(row, "Stato · properties.status"));
+      const missing = [];
+      if (!name) missing.push("nome");
+      if (!address) missing.push("indirizzo");
+      if (!city) missing.push("comune");
+      if (!type) missing.push("tipologia");
+      if (!status) missing.push("stato valido");
+      if (missing.length) {
+        markImportRow(row, "Da completare", "Manca: " + missing.join(", ") + ".");
+        continue;
+      }
+      const estimatedRaw = excelValue(row, "Valore stimato € · private_details");
+      const estimated = importNumber(estimatedRaw);
+      if (estimatedRaw !== "" && (estimated === null || estimated < 0)) {
+        markImportRow(row, "Da correggere", "Il valore stimato deve essere un importo uguale o superiore a zero.");
+        continue;
+      }
+      const item = {
+        id: row.id || (row.id = newId()),
+        name, address, city,
+        postal_code: String(excelValue(row, "CAP · properties.postal_code") || "").trim(),
+        type, status,
+        estimated_value: estimated || 0,
+        notes: String(excelValue(row, "Note admin · private_details.notes") || "").trim()
+      };
+      const key = importPropertyKey(item);
+      if (savedPropertyKeys.has(key)) {
+        markImportRow(row, "Già presente", "Immobile con nome e indirizzo già presente in piattaforma.");
+        continue;
+      }
+      if (filePropertyKeys.has(key)) {
+        markImportRow(row, "Duplicata nel file", "La stessa combinazione nome/indirizzo/comune compare più volte nel foglio.");
+        continue;
+      }
+      filePropertyKeys.add(key);
+      markImportRow(row, "Pronta", "", true, item);
+    }
+
+    const savedAccounts = [...state.data.utility_accounts];
+    for (const row of plan.accounts) {
+      if (row.imported) {
+        markImportRow(row, "Importata", "Già salvata in questa operazione.");
+        continue;
+      }
+      if (row.alreadyPresent) {
+        markImportRow(row, "Già presente", "La stessa utenza è stata salvata da un’altra sessione Admin.");
+        continue;
+      }
+      if (row.failure) {
+        markImportRow(row, "Errore", row.failure);
+        continue;
+      }
+      if (!excelDecisionYes(excelValue(row, "Decisione importazione"))) {
+        markImportRow(row, "Non selezionata", "Imposta «Sì» nella colonna Decisione importazione per includerla.");
+        continue;
+      }
+      const propertyName = excelValue(row, "Immobile candidato") || excelValue(row, "Immobile in Excel");
+      const match = findImportProperty(propertyName, plan);
+      const kind = String(excelValue(row, "Utenza · kind") || "").trim();
+      const provider = String(excelValue(row, "Fornitore") || "").trim();
+      const holder = importText(excelValue(row, "Intestatario · holder"));
+      const recharged = excelValue(row, "Riaddebito inquilino");
+      const rechargedText = importText(recharged);
+      const rechargedValue = typeof recharged === "boolean" ? recharged
+        : ["si", "true", "vero", "1"].includes(rechargedText) ? true
+        : ["no", "false", "falso", "0"].includes(rechargedText) ? false
+        : null;
+      const missing = [];
+      if (!match.property) missing.push(match.issue);
+      if (!kind) missing.push("tipo utenza");
+      if (!["owner", "tenant"].includes(holder)) missing.push("intestatario (owner/tenant)");
+      if (rechargedValue === null) missing.push("riaddebito (TRUE/FALSE)");
+      if (missing.length) {
+        markImportRow(row, "Da completare", missing.join(" "));
+        continue;
+      }
+      const contractCode = String(excelValue(row, "Codice contratto candidato") || excelValue(row, "Codice POD/servizio") || excelValue(row, "Codice cliente") || "").trim();
+      const noteParts = [];
+      const sourceStatus = String(excelValue(row, "Stato nel file") || "").trim();
+      const clientCode = String(excelValue(row, "Codice cliente") || "").trim();
+      const serviceCode = String(excelValue(row, "Codice POD/servizio") || "").trim();
+      const sourceNote = String(excelValue(row, "Note candidate per la piattaforma") || "").trim();
+      if (sourceStatus) noteParts.push("Stato nel file: " + sourceStatus);
+      if (clientCode) noteParts.push("Codice cliente: " + clientCode);
+      if (serviceCode) noteParts.push("Codice POD/servizio: " + serviceCode);
+      if (sourceNote) noteParts.push(sourceNote);
+      const item = {
+        id: row.id || (row.id = newId()),
+        property_id: match.property.id,
+        kind, provider: provider || null,
+        holder,
+        recharged_to_tenant: rechargedValue,
+        contract_code: contractCode || null,
+        notes: noteParts.join(" · ") || null
+      };
+      if (savedAccounts.some((saved) => importAccountDuplicate(saved, item))) {
+        markImportRow(row, "Già presente", "Utenza equivalente già presente per questo immobile.");
+        continue;
+      }
+      savedAccounts.push(item);
+      markImportRow(row, "Pronta", "", true, item);
+    }
+
+    const savedBills = [...state.data.utility_bills];
+    const accountCandidates = [
+      ...state.data.utility_accounts,
+      ...plan.accounts.filter((row) => row.ready).map((row) => row.item)
+    ];
+    for (const row of plan.bills) {
+      if (row.imported) {
+        markImportRow(row, "Importata", "Già salvata in questa operazione.");
+        continue;
+      }
+      if (row.alreadyPresent) {
+        markImportRow(row, "Già presente", "La stessa bolletta è stata salvata da un’altra sessione Admin.");
+        continue;
+      }
+      if (row.failure) {
+        markImportRow(row, "Errore", row.failure);
+        continue;
+      }
+      if (!excelDecisionYes(excelValue(row, "Decisione importazione"))) {
+        markImportRow(row, "Non selezionata", "Imposta «Sì» nella colonna Decisione importazione per includerla.");
+        continue;
+      }
+      const propertyName = excelValue(row, "Immobile candidato") || excelValue(row, "Immobile in Excel");
+      const match = findImportProperty(propertyName, plan);
+      const kind = String(excelValue(row, "Utenza") || "").trim();
+      const provider = String(excelValue(row, "Fornitore") || "").trim();
+      const periodDate = importDate(excelValue(row, "Periodo candidato"));
+      const amount = importNumber(excelValue(row, "Importo €"));
+      const status = importBillStatus(excelValue(row, "Stato · utility_bills.status"));
+      const dueRaw = excelValue(row, "Scadenza · due_date");
+      const dueDate = dueRaw === "" || dueRaw === null ? null : importDate(dueRaw);
+      const missing = [];
+      if (!match.property) missing.push(match.issue);
+      if (!kind) missing.push("tipo utenza");
+      if (!periodDate) missing.push("periodo valido");
+      if (amount === null || amount < 0) missing.push("importo valido");
+      if (!status) missing.push("stato valido");
+      if (dueRaw !== "" && dueRaw !== null && !dueDate) missing.push("scadenza non valida");
+      let candidates = match.property
+        ? accountCandidates.filter((account) => account.property_id === match.property.id && importText(account.kind) === importText(kind))
+        : [];
+      if (provider) candidates = candidates.filter((account) => importText(account.provider) === importText(provider));
+      const explicitLink = importText(excelValue(row, "Collegamento utenza"));
+      const linkedByCode = explicitLink
+        ? candidates.filter((account) => importText(account.contract_code) === explicitLink)
+        : [];
+      if (linkedByCode.length) candidates = linkedByCode;
+      const uniqueCandidates = [...new Map(candidates.map((account) => [account.id, account])).values()];
+      if (uniqueCandidates.length !== 1) {
+        missing.push(uniqueCandidates.length ? "collegamento utenza ambiguo: verifica il fornitore/codice." : "nessuna utenza corrispondente: seleziona o crea prima l’utenza.");
+      }
+      if (missing.length) {
+        markImportRow(row, "Da completare", missing.join(" "));
+        continue;
+      }
+      const period = periodDate.slice(0, 7) + "-01";
+      const item = {
+        id: row.id || (row.id = newId()),
+        utility_id: uniqueCandidates[0].id,
+        property_id: match.property.id,
+        period,
+        due_date: dueDate || null,
+        amount,
+        status
+      };
+      if (savedBills.some((saved) => importBillDuplicate(saved, item))) {
+        markImportRow(row, "Già presente", "Bolletta con la stessa utenza, periodo e importo già presente.");
+        continue;
+      }
+      savedBills.push(item);
+      markImportRow(row, "Pronta", "", true, item);
+    }
+  }
+
+  function excelImportRowTitle(kind, row) {
+    if (kind === "property") return String(excelValue(row, "Nome · properties.name") || "Immobile senza nome");
+    const property = String(excelValue(row, "Immobile candidato") || excelValue(row, "Immobile in Excel") || "Immobile non associato");
+    if (kind === "account") return [property, excelValue(row, "Utenza · kind"), excelValue(row, "Fornitore")].filter(Boolean).join(" · ");
+    return [property, excelValue(row, "Utenza"), importDate(excelValue(row, "Periodo candidato"))?.slice(0, 7), excelValue(row, "Importo €")].filter(Boolean).join(" · ");
+  }
+
+  function renderExcelImportGroup(title, kind, rows) {
+    const visible = rows;
+    if (!visible.length) return "";
+    return `<section class="excel-import-group"><h3>${esc(title)}</h3><div class="excel-import-table"><table><thead><tr><th>Riga</th><th>Elemento</th><th>Esito</th></tr></thead><tbody>${visible.map((row) => {
+      const statusClass = row.ready ? "ready" : row.imported ? "imported" : row.status === "Errore" || row.status === "Da correggere" ? "error" : "";
+      const sourceLine = excelValue(row, "Riga Excel") || row.excelRow;
+      return `<tr><td>${esc(sourceLine)}</td><td><strong>${esc(excelImportRowTitle(kind, row))}</strong><br><small>${esc(row.reason || "Completa i dati e imposta Sì nel foglio.")}</small></td><td><span class="excel-import-state ${statusClass}">${esc(row.status)}</span></td></tr>`;
+    }).join("")}</tbody></table></div></section>`;
+  }
+
+  function renderExcelImportDialog(errorMessage = "") {
+    const plan = pendingExcelImport;
+    const groups = plan ? [
+      renderExcelImportGroup("Immobili", "property", plan.properties),
+      renderExcelImportGroup("Utenze", "account", plan.accounts),
+      renderExcelImportGroup("Bollette", "bill", plan.bills)
+    ].filter(Boolean).join("") : "";
+    const readyCount = plan ? [...plan.properties, ...plan.accounts, ...plan.bills].filter((row) => row.ready).length : 0;
+    const body = `<div class="stack"><p>Carica il file <strong>Verifica-immobili-Proprieta-Papa.xlsx</strong>. Il riepilogo non salva nulla: verranno proposte solo le righe contrassegnate <strong>Sì</strong> e complete.</p>${errorMessage ? `<div class="callout danger">${esc(errorMessage)}</div>` : ""}<label class="file-input"><input type="file" accept=".xlsx" data-input="excel-import-file" ${excelImporting ? "disabled" : ""}/><span><strong>${plan ? "Seleziona un altro file Excel" : "Seleziona file Excel"}</strong><span>${plan ? esc(plan.fileName) : "Solo file .xlsx, massimo 20 MB."}</span></span></label>${plan ? `<div class="excel-import-summary"><div><strong>${plan.properties.filter((row) => row.ready).length}</strong><span>immobili pronti</span></div><div><strong>${plan.accounts.filter((row) => row.ready).length}</strong><span>utenze pronte</span></div><div><strong>${plan.bills.filter((row) => row.ready).length}</strong><span>bollette pronte</span></div></div><div class="callout warning">I duplicati vengono saltati. I campi vuoti, le associazioni ambigue e le righe non marcate Sì restano fuori. Il file non contiene dati sufficienti per creare contratti, inquilini, spese aggregate o quote.</div><div class="excel-import-groups">${groups}</div>${plan.failures?.length ? `<div class="callout danger">${esc(plan.failures.length)} righe non sono state salvate. Controlla l’esito e riprova dopo aver corretto i dati o la connessione.</div>` : ""}` : ""}</div>`;
+    const closeButton = `<button class="button secondary" type="button" data-action="close-dialog" ${excelImporting ? "disabled" : ""}>Chiudi</button>`;
+    const importButton = plan ? `<button class="button" type="button" data-action="commit-excel-import" ${readyCount && !excelImporting ? "" : "disabled"}>${excelImporting ? "Salvataggio…" : "Importa " + readyCount + " righe"}</button>` : "";
+    const recheckButton = plan?.failures?.length && !excelImporting ? `<button class="button secondary" type="button" data-action="recheck-excel-import">Rivaluta le righe con errore</button>` : "";
+    openDialog(dialogTemplate("Importa da Excel", plan ? "Controlla i dati prima di scriverli nel database." : "Seleziona il file rielaborato per vedere l’anteprima.", body, closeButton + recheckButton + importButton));
+  }
+
+  function openExcelImportDialog() {
+    if (state.profile?.role !== "admin" || !supabaseClient || !state.sessionUser) {
+      toast("L’importazione richiede un account Admin collegato a Supabase.", "error");
+      return;
+    }
+    pendingExcelImport = null;
+    renderExcelImportDialog();
+  }
+
+  async function readExcelImportFile(file) {
+    if (!file) return;
+    pendingExcelImport = null;
+    try {
+      const parsed = await window.PropertyExcelImport.read(file);
+      pendingExcelImport = {
+        fileName: parsed.fileName,
+        properties: parsed.properties.map((row) => ({ ...row, id: "", imported: false, failure: "" })),
+        accounts: parsed.accounts.map((row) => ({ ...row, id: "", imported: false, failure: "" })),
+        bills: parsed.bills.map((row) => ({ ...row, id: "", imported: false, failure: "" })),
+        failures: []
+      };
+      for (const row of pendingExcelImport.properties) {
+        const key = [excelValue(row, "Nome · properties.name"), excelValue(row, "Indirizzo · properties.address"), excelValue(row, "Comune · properties.city")].map(importText).join("|");
+        row.id = await stableExcelId("property", key);
+      }
+      for (const row of pendingExcelImport.accounts) {
+        const key = [excelValue(row, "Immobile candidato") || excelValue(row, "Immobile in Excel"), excelValue(row, "Utenza · kind"), excelValue(row, "Fornitore"), excelValue(row, "Codice contratto candidato") || excelValue(row, "Codice POD/servizio") || excelValue(row, "Codice cliente")].map(importText).join("|");
+        row.id = await stableExcelId("utility", key);
+      }
+      for (const row of pendingExcelImport.bills) {
+        const key = [excelValue(row, "Immobile candidato") || excelValue(row, "Immobile in Excel"), excelValue(row, "Utenza"), excelValue(row, "Fornitore"), importDate(excelValue(row, "Periodo candidato")), importNumber(excelValue(row, "Importo €"))].map(importText).join("|");
+        row.id = await stableExcelId("bill", key);
+      }
+      classifyExcelImport(pendingExcelImport);
+      renderExcelImportDialog();
+    } catch (error) {
+      console.error("Lettura Excel non riuscita", error);
+      pendingExcelImport = null;
+      renderExcelImportDialog(error.message || "Non è stato possibile leggere il file Excel.");
+    }
+  }
+
+  async function commitExcelImport() {
+    const plan = pendingExcelImport;
+    if (!plan || excelImporting) return;
+    if (state.profile?.role !== "admin" || !supabaseClient || !state.sessionUser) {
+      toast("Solo un Admin collegato a Supabase può importare dati.", "error");
+      return;
+    }
+    excelImporting = true;
+    plan.failures = [];
+    renderExcelImportDialog();
+    let imported = 0;
+    const groups = [
+      ["property", plan.properties],
+      ["utility", plan.accounts],
+      ["utilityBill", plan.bills]
+    ];
+    for (const [type, rows] of groups) {
+      for (const row of rows.filter((item) => item.ready)) {
+        try {
+          await syncEntity(type, row.item, "insert");
+          if (type === "property") state.data.properties.push(row.item);
+          if (type === "utility") state.data.utility_accounts.push(row.item);
+          if (type === "utilityBill") state.data.utility_bills.push(row.item);
+          row.imported = true;
+          row.failure = "";
+          imported += 1;
+        } catch (error) {
+          row.failure = error.message || "Salvataggio non riuscito.";
+          plan.failures.push({ type, row, message: row.failure });
+          console.error("Riga Excel non importata", row, error);
+        }
+        classifyExcelImport(plan);
+        renderExcelImportDialog();
+        await new Promise((resolve) => window.requestAnimationFrame(resolve));
+      }
+    }
+    try {
+      await hydrateRemoteData();
+    } catch (error) {
+      console.error("Aggiornamento dati dopo import non riuscito", error);
+      if (imported) plan.failures.push({ message: "Alcuni dati sono stati salvati; la rilettura da Supabase non è riuscita." });
+    }
+    const tableByType = { property: "properties", utility: "utility_accounts", utilityBill: "utility_bills" };
+    plan.failures = plan.failures.filter((failure) => {
+      const table = tableByType[failure.type];
+      if (!table || !failure.row) return true;
+      const exists = state.data[table]?.some((item) => item.id === failure.row.id);
+      if (exists) {
+        failure.row.failure = "";
+        failure.row.alreadyPresent = true;
+        return false;
+      }
+      return true;
+    });
+    classifyExcelImport(plan);
+    excelImporting = false;
+    if (plan.failures.length) {
+      renderExcelImportDialog();
+      toast("Importazione parziale: " + imported + " righe salvate. Controlla le righe con errore.", "error");
+      return;
+    }
+    const importedProperties = plan.properties.filter((row) => row.imported).length;
+    const importedAccounts = plan.accounts.filter((row) => row.imported).length;
+    const importedBills = plan.bills.filter((row) => row.imported).length;
+    pendingExcelImport = null;
+    closeDialog();
+    state.activeView = "properties";
+    renderShell();
+    toast("Importati: " + importedProperties + " immobili, " + importedAccounts + " utenze, " + importedBills + " bollette. I duplicati e le righe non complete sono stati saltati.");
+  }
+
+  function recheckExcelImport() {
+    if (!pendingExcelImport || excelImporting) return;
+    pendingExcelImport.failures = [];
+    for (const group of [pendingExcelImport.properties, pendingExcelImport.accounts, pendingExcelImport.bills]) {
+      group.forEach((row) => { row.failure = ""; row.alreadyPresent = false; });
+    }
+    classifyExcelImport(pendingExcelImport);
+    renderExcelImportDialog();
   }
 
   function deleteManagementTable(items, kind) {
@@ -1386,6 +1857,9 @@
     const target = event.target.closest("[data-action]");
     if (!target) return;
     const action = target.dataset.action;
+    if (action === "open-excel-import") return openExcelImportDialog();
+    if (action === "commit-excel-import") return commitExcelImport();
+    if (action === "recheck-excel-import") return recheckExcelImport();
     if (action === "forgot-password") {
       await requestPasswordReset();
       return;
@@ -1484,6 +1958,12 @@
   }
 
   function handleInput(event) {
+    if (event.type === "change" && event.target.dataset.input === "excel-import-file") {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      void readExcelImportFile(file);
+      return;
+    }
     if (event.target.dataset.input === "delete-confirmation" || event.target.dataset.input === "delete-confirmation-check") {
       updateDeleteConfirmation(event.target.closest('form[data-form="delete-record"]'));
     }

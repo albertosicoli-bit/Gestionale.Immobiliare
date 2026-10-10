@@ -34,9 +34,9 @@ Valore stimato degli immobili e note amministrative sono conservati in una tabel
 
 Non usare solo `localStorage` per documenti o accessi degli inquilini: i dati resterebbero nel solo browser dell’amministratore e non sarebbero protetti per utente.
 
-## Avvio immediato: demo locale
+## Avvio dell'app
 
-Apri `index.html` con un server statico oppure pubblica il progetto su GitHub Pages senza configurare Supabase. L’app partirà in **modalità demo locale** e permetterà di provare tutti i flussi; i dati resteranno solo nel browser in uso.
+L’app richiede Supabase per consentire l’accesso. Se URL e Publishable key non sono configurati, mostra le istruzioni di collegamento e non apre una sessione demo. I dati gestionali vengono caricati dal database solo dopo l’autenticazione.
 
 ## Configurazione multiutente sicura
 
@@ -55,6 +55,8 @@ where email = 'la-tua-email@example.com';
 ```
 
 Questo è l’unico bootstrap manuale: nessun utente può auto-attribuirsi il ruolo di amministratore.
+
+Se gli utenti erano già presenti in **Authentication > Users** prima dell’esecuzione dello schema, esegui anche `supabase/sync_existing_auth_users.sql`. Crea le schede mancanti come inquilini e non modifica i ruoli dei profili già esistenti. Verifica poi che l’account amministratore abbia `role = 'admin'`.
 
 ### 2. Pubblica la funzione di creazione utenti
 
@@ -86,7 +88,7 @@ window.PROPERTY_MANAGER_CONFIG = {
 };
 ```
 
-La Publishable key è destinata al frontend; lo schema abilita RLS e nega l'accesso anonimo ai dati. Non inserire mai una Secret key, una `service_role` key o la password del database in `config.js` o in GitHub.
+La Publishable key è destinata al frontend; lo schema abilita RLS e nega l'accesso anonimo ai dati. Non inserire mai una Secret key, una `service_role` key o la password del database in `config.js` o in GitHub. Dopo il deploy, gli utenti accedono con le credenziali già registrate in Supabase Auth.
 
 ### 4. Pubblica su GitHub Pages
 
@@ -99,6 +101,19 @@ https://albertosicoli-bit.github.io/Gestionale.Immobiliare/
 ```
 
 GitHub Pages rende pubblico il sito; il repository contiene solo il frontend. Dati e documenti restano su Supabase, con accessi controllati dal database e dallo Storage privato.
+
+### 5. Importa il file Excel
+
+Accedi alla piattaforma con un account **Admin** e apri **Impostazioni > Carica dati da Excel**. Seleziona il file `Verifica-immobili-Proprieta-Papa.xlsx`: l’anteprima indica quali righe sono pronte, già presenti o da completare. Solo dopo la conferma i dati vengono scritti in Supabase; il file Excel viene letto nel browser e non viene caricato.
+
+Prima dell’importazione:
+
+1. In **Import immobili**, completa nome, indirizzo, comune, tipologia e stato; imposta **Sì** in **Decisione importazione**.
+2. In **Utenze e bollette**, per ogni utenza da importare conferma l’immobile, l’intestatario (`owner` o `tenant`), il riaddebito (`TRUE` o `FALSE`) e imposta **Sì**.
+3. Per ogni bolletta da importare imposta **Sì** e conferma che immobile, utenza, periodo, importo e stato siano corretti. L’utenza deve essere già presente o selezionata per l’importazione.
+4. Verifica il riepilogo nell’app e premi **Importa**.
+
+Le righe incomplete, le associazioni ambigue e i duplicati vengono saltati. Puoi caricare di nuovo il file dopo averlo corretto: gli immobili con lo stesso nome/indirizzo/comune, le utenze equivalenti e le bollette con stessa utenza/periodo/importo non vengono reinseriti. Le bollette caricano i soli dati strutturati, non i PDF originali. **Dati economici aggregati, spese “General”, proposte di quote, contratti e inquilini** restano nel file: mancano date, collegamenti o campi sufficienti per registrarli correttamente nella piattaforma.
 
 ## Ruoli e visibilità
 

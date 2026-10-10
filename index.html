@@ -13,6 +13,7 @@
     <link rel="apple-touch-icon" href="assets/icon.svg" />
     <title>Property Manager</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="preconnect" href="https://cdn.sheetjs.com" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -23,7 +24,9 @@
 
     <!-- La chiave anon di Supabase è pubblica per natura: la protezione reale è nelle policy RLS. -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="config.js"></script>
+    <script src="excel-import.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
