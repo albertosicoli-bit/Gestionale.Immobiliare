@@ -144,6 +144,7 @@ a { color: inherit; }
 .icon-button:hover { background: #f2f6f8; }
 
 .kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.dashboard-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .kpi-card { min-height: 126px; padding: 17px; border: 1px solid rgba(220,228,234,.8); border-radius: var(--radius-md); background: var(--surface); box-shadow: 0 5px 16px rgba(18,48,71,.04); }
 .kpi-card.highlight { color: #fff; border: 0; background: linear-gradient(130deg, #17475f, #123047); }
 .kpi-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--ink-soft); font-size: .74rem; font-weight: 750; }
@@ -166,25 +167,25 @@ a { color: inherit; }
 .property-list { display: grid; gap: 0; }
 .property-row { display: grid; grid-template-columns: minmax(0,1fr) 120px 135px 118px minmax(96px,auto); align-items: center; gap: 12px; padding: 14px 20px; border-top: 1px solid #edf1f4; }
 .property-row:hover { background: #fbfcfd; }
-.dashboard-property-slider { display: grid; grid-auto-columns: minmax(275px, calc((100% - 24px) / 2.25)); grid-auto-flow: column; gap: 12px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: x mandatory; scrollbar-color: #91a8b6 #edf2f5; scrollbar-width: thin; padding: 6px 20px 12px; touch-action: pan-x pan-y; }
-.dashboard-property-slider::-webkit-scrollbar { height: 9px; }
-.dashboard-property-slider::-webkit-scrollbar-track { border-radius: 99px; background: #edf2f5; }
-.dashboard-property-slider::-webkit-scrollbar-thumb { border: 2px solid #edf2f5; border-radius: 99px; background: #91a8b6; }
-.dashboard-property-slide { display: flex; min-width: 0; min-height: 236px; flex-direction: column; padding: 16px; border: 1px solid #dfe7ed; border-radius: 15px; background: linear-gradient(160deg, #fff, #fbfcfd); scroll-snap-align: start; }
-.dashboard-slide-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-.dashboard-slide-heading h3 { min-width: 0; margin: 0; font-size: .9rem; line-height: 1.35; overflow-wrap: anywhere; }
-.dashboard-slide-heading .badge { flex: 0 0 auto; }
-.dashboard-slide-address { min-height: 34px; margin: 6px 0 0; color: var(--ink-soft); font-size: .75rem; line-height: 1.4; overflow-wrap: anywhere; }
-.dashboard-slide-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 13px; padding: 11px 0; border-top: 1px solid #e8edf1; border-bottom: 1px solid #e8edf1; }
-.dashboard-slide-metrics > div, .dashboard-slide-tenant { display: grid; min-width: 0; gap: 4px; }
-.dashboard-slide-metrics span, .dashboard-slide-tenant > span { color: #627989; font-size: .68rem; font-weight: 700; }
-.dashboard-slide-metrics strong { font-size: .84rem; }
-.dashboard-slide-tenant { margin-top: 10px; }
-.dashboard-slide-tenant strong { color: #425e70; font-size: .76rem; line-height: 1.35; overflow-wrap: anywhere; }
-.dashboard-slide-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; margin-top: auto; padding-top: 13px; }
-.dashboard-slide-actions .button { white-space: nowrap; }
-.dashboard-slider-hint { display: flex; justify-content: space-between; gap: 10px; padding: 0 20px 14px; color: #627989; font-size: .7rem; }
-.dashboard-slider-hint strong { color: var(--navy); }
+.dashboard-properties-panel { margin-top: 18px; }
+.dashboard-properties-panel > .panel-head { padding: 19px 22px 13px; }
+.dashboard-occupancy { padding: 14px 22px 18px; border-top: 1px solid #edf1f4; border-bottom: 1px solid #edf1f4; background: #fafcfd; }
+.dashboard-occupancy-copy { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 18px; }
+.dashboard-occupancy-copy > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px 12px; }
+.dashboard-occupancy-copy strong { font-size: .82rem; }
+.dashboard-occupancy-copy span { color: var(--ink-soft); font-size: .75rem; }
+.occupancy-bar { display: flex; width: 100%; height: 10px; margin-top: 12px; overflow: hidden; border-radius: 999px; background: #e8edf1; }
+.occupancy-segment { min-width: 0; flex: 0 0 auto; }
+.occupancy-segment.rented { background: #118a7e; }
+.occupancy-segment.vacant { background: #e8ad2b; }
+.occupancy-segment.other { background: #b9c8d0; }
+.occupancy-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 10px; }
+.occupancy-legend > span { display: inline-flex; align-items: center; gap: 7px; color: var(--ink-soft); font-size: .73rem; }
+.occupancy-legend strong { color: var(--ink); }
+.occupancy-legend .legend-dot.rented { background: #118a7e; }
+.occupancy-legend .legend-dot.vacant { background: #e8ad2b; }
+.occupancy-legend .legend-dot.other { background: #b9c8d0; }
+.dashboard-properties-list { padding: 14px 20px 20px; }
 .property-title { display: flex; min-width: 0; align-items: center; gap: 11px; }
 button.property-title { padding: 0; border: 0; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; }
 button.property-title:hover strong { color: var(--teal); }
@@ -210,16 +211,6 @@ button.property-title:hover strong { color: var(--teal); }
 .badge.missing { color: #a53e3e; background: #fff0ef; }
 .badge.upcoming { color: #386b9c; background: #eaf3fc; }
 
-.portfolio-panel { display: flex; flex-direction: column; }
-.portfolio-panel .donut-layout { flex: 1; align-content: center; }
-.donut-layout { display: grid; grid-template-columns: 120px minmax(0,1fr); align-items: center; gap: 20px; padding: 10px 20px 21px; }
-.donut-wrap { display: grid; justify-items: center; gap: 8px; }
-.donut { position: relative; display: grid; width: 117px; height: 117px; place-items: center; border-radius: 50%; background: conic-gradient(var(--teal) 0 var(--rented-stop), var(--gold) var(--rented-stop) var(--vacant-stop), #d9e3e8 var(--vacant-stop) 100%); }
-.donut::after { width: 82px; height: 82px; border-radius: 50%; content: ""; background: #fff; }
-.donut-label { position: absolute; z-index: 1; display: grid; justify-items: center; gap: 1px; }
-.donut-label strong { font-size: 1.15rem; line-height: 1.1; font-weight: 830; }
-.donut-label small { color: var(--ink-soft); font-size: .64rem; font-weight: 700; }
-.portfolio-note { margin: 0; color: var(--ink-soft); font-size: .69rem; font-weight: 650; text-align: center; }
 .legend { display: grid; gap: 10px; }
 .legend-item { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: .78rem; }
 .legend-label { display: flex; align-items: center; gap: 7px; color: var(--ink-soft); }
@@ -427,6 +418,7 @@ tr.clickable:hover td { background: #fbfcfd; }
 
 @media (max-width: 1180px) {
   .kpi-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .dashboard-kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .card-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .property-directory-row { grid-template-columns: minmax(0,1fr) minmax(120px,auto) auto; grid-template-areas: "identity status actions" "rent costs tenants"; gap: 13px 16px; }
   .property-directory-identity { grid-area: identity; }
@@ -437,7 +429,6 @@ tr.clickable:hover td { background: #fbfcfd; }
   .property-directory-actions { grid-area: actions; }
   .property-row { grid-template-columns: minmax(0,1fr) 120px 110px minmax(96px,auto); }
   .property-row .tenant-col { display: none; }
-  .dashboard-property-slider { grid-auto-columns: minmax(275px, calc((100% - 12px) / 1.6)); }
 }
 @media (max-width: 900px) {
   .login-shell { grid-template-columns: 1fr; }
@@ -470,11 +461,13 @@ tr.clickable:hover td { background: #fbfcfd; }
   .topbar-actions .secondary:not(.icon-button) { display: none; }
   .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
   .kpi-card:last-child { grid-column: span 2; }
+  .dashboard-kpi-grid .kpi-card:last-child { grid-column: auto; }
   .kpi-card { min-height: 108px; padding: 14px; }
   .kpi-value { margin-top: 12px; }
   .card-grid { grid-template-columns: 1fr; }
-  .dashboard-property-slider { grid-auto-columns: minmax(min(275px, calc(100vw - 78px)), calc(100vw - 78px)); padding-right: 14px; padding-left: 14px; }
-  .dashboard-slider-hint { padding-right: 14px; padding-left: 14px; }
+  .dashboard-occupancy { padding-right: 15px; padding-left: 15px; }
+  .dashboard-properties-panel > .panel-head { flex-direction: column; padding-right: 15px; padding-left: 15px; }
+  .dashboard-properties-list { padding: 12px 12px 15px; }
   .property-directory { gap: 10px; }
   .property-directory-row { grid-template-columns: minmax(0,1fr) auto; grid-template-areas: "identity status" "rent costs" "tenants tenants" "actions actions"; gap: 12px; padding: 15px; }
   .property-directory-identity h2 { font-size: .95rem; }
@@ -484,20 +477,7 @@ tr.clickable:hover td { background: #fbfcfd; }
   .property-row { grid-template-columns: minmax(0,1fr) 85px minmax(96px,auto); gap: 7px; padding: 12px 14px; }
   .property-row .rent-col { display: none; }
   .property-row .row-number { font-size: .73rem; }
-  .dashboard-property-row { grid-template-columns: minmax(0,1fr) auto; grid-template-areas: "title actions" "status rent" "tenant tenant"; gap: 7px 10px; padding: 14px; }
-  .dashboard-property-row .property-title { grid-area: title; align-self: start; }
-  .dashboard-property-row .dashboard-status { grid-area: status; }
-  .dashboard-property-row .dashboard-rent { display: block; }
-  .dashboard-property-row .dashboard-rent { grid-area: rent; justify-self: end; text-align: right; }
-  .dashboard-property-row .dashboard-tenant { grid-area: tenant; padding: 0 0 0 58px; font-size: .78rem; }
-  .dashboard-property-row .row-actions { grid-area: actions; align-self: start; }
-  .dashboard-property-row .row-actions .button.danger { min-height: 38px; padding: 7px 9px; }
   .panel-head { padding: 16px 15px 10px; }
-  .donut-layout { grid-template-columns: 100px minmax(0,1fr); gap: 11px; padding: 8px 15px 16px; }
-  .donut { width: 94px; height: 94px; }
-  .donut::after { width: 65px; height: 65px; }
-  .donut-label strong { font-size: .95rem; }
-  .donut-label small { font-size: .59rem; }
   .task-list { padding: 0 15px 7px; }
   .form-grid, .form-grid.three, .detail-grid, .permission-grid { grid-template-columns: 1fr; }
   .tenant-summary-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }

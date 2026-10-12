@@ -838,28 +838,23 @@
     const payments = state.data.rent_payments
       .filter((payment) => payment.period === month)
       .sort((a, b) => String(a.due_date).localeCompare(String(b.due_date)));
-    const propertyRows = properties;
     return `
-      <div class="kpi-grid">
+      <div class="kpi-grid dashboard-kpi-grid">
         ${kpiCard("Immobili", properties.length, `${rented} fittati · ${vacant} sfitti`, "building")}
         ${kpiCard("Canoni attesi", money(monthlyIncome), "al mese, contratti attivi", "arrowUpRight")}
-        ${kpiCard("Entrate registrate", money(incomeRecorded), `nel mese di ${monthLabel(month)}`, "checkCircle")}
-        ${kpiCard("Uscite registrate", money(expense), `nel mese di ${monthLabel(month)}`, "arrowDownRight")}
-        ${kpiCard("Saldo del mese", money(incomeRecorded - expense), "movimenti effettivamente segnati", "pieChart", "highlight")}
+        ${kpiCard("Incassato questo mese", money(incomeRecorded), monthLabel(month), "checkCircle")}
+        ${kpiCard("Saldo del mese", money(incomeRecorded - expense), `${money(incomeRecorded)} entrate · ${money(expense)} uscite`, "pieChart", "highlight")}
       </div>
-      <div class="page-grid">
-        <section class="panel">
-          <div class="panel-head"><div><h2>Stato degli immobili</h2><p>Scorri per consultare tutti gli immobili e i relativi dettagli.</p></div><button class="button ghost small" data-action="navigate" data-view="properties">Vedi tutti ${uiIcon("arrowRight", 15)}</button></div>
-          ${propertyRows.length ? `<div class="dashboard-property-slider" aria-label="Elenco scorrevole di tutti gli immobili">${propertyRows.map(dashboardPropertySlide).join("")}</div><div class="dashboard-slider-hint"><span>← Scorri per vedere gli altri immobili →</span><strong>${propertyRows.length} immobili</strong></div>` : empty("building", "Nessun immobile", "Aggiungi il primo immobile per iniziare.")}
-        </section>
-        <section class="panel portfolio-panel">
-          <div class="panel-head"><div><h2>Portafoglio</h2><p>Distribuzione attuale.</p></div></div>
+      <section class="panel dashboard-properties-panel">
+        <div class="panel-head"><div><h2>Immobili</h2><p>${properties.length} schede · stato, canoni, costi e inquilini.</p></div><button class="button ghost small" data-action="navigate" data-view="properties">Gestisci immobili ${uiIcon("arrowRight", 15)}</button></div>
+        <div class="dashboard-occupancy"><div class="dashboard-occupancy-copy"><div><strong>Situazione locazioni</strong><span>Fittati ${rented} su ${properties.length} · ${properties.length ? Math.round((rented / properties.length) * 100) : 0}%</span></div><span>${vacant} sfitti · ${Math.max(0, properties.length - rented - vacant)} personali/altri</span></div>
           ${occupancyPanel(properties, rented, vacant)}
-        </section>
-      </div>
+        </div>
+        ${properties.length ? `<div class="property-directory dashboard-properties-list">${properties.map(propertyCard).join("")}</div>` : empty("building", "Nessun immobile", "Aggiungi il primo immobile per iniziare.")}
+      </section>
       <div class="page-grid">
         <section class="panel">
-          <div class="panel-head"><div><h2>Canoni del mese</h2><p>Contabili caricate dagli inquilini e stato di verifica.</p></div><button class="button ghost small" data-action="navigate" data-view="finance">Conto economico ${uiIcon("arrowRight", 15)}</button></div>
+          <div class="panel-head"><div><h2>Canoni del mese</h2><p>Importi in scadenza e stato di verifica.</p></div><button class="button ghost small" data-action="navigate" data-view="finance">Apri pagamenti ${uiIcon("arrowRight", 15)}</button></div>
           <div class="property-list">
             ${payments.length ? payments.map(paymentRow).join("") : empty("coins", "Nessun canone pianificato", "I canoni compariranno qui quando associ un contratto attivo.")}
           </div>
@@ -881,29 +876,11 @@
   function occupancyPanel(properties, rented, vacant) {
     const total = properties.length;
     const other = Math.max(0, total - rented - vacant);
-    const rentedPercent = total ? Math.round((rented / total) * 100) : 0;
-    const rentedStop = total ? (rented / total) * 100 : 0;
-    const vacantStop = total ? ((rented + vacant) / total) * 100 : 0;
-    const chartLabel = `${rented} immobili fittati su ${total}, pari al ${rentedPercent}%`;
-    return `<div class="donut-layout"><div class="donut-wrap"><div class="donut" role="img" aria-label="${esc(chartLabel)}" style="--rented-stop:${rentedStop}%;--vacant-stop:${vacantStop}%"><span class="donut-label"><strong>${rentedPercent}%</strong><small>fittati</small></span></div><p class="portfolio-note">${rented} su ${total} immobili</p></div><div class="legend"><div class="legend-item"><span class="legend-label"><i class="legend-dot" style="background:#118a7e"></i>Fittati</span><strong>${rented}</strong></div><div class="legend-item"><span class="legend-label"><i class="legend-dot" style="background:#e8ad2b"></i>Sfitti</span><strong>${vacant}</strong></div><div class="legend-item"><span class="legend-label"><i class="legend-dot" style="background:#d9e3e8"></i>Personali/altri</span><strong>${other}</strong></div></div></div>`;
-  }
-
-  function dashboardPropertySlide(property) {
-    const tenants = getTenantsForProperty(property.id);
-    const monthlyRent = property.status === "rented" ? money(propertyRent(property.id)) : "—";
-    const cost = money(propertyCurrentCosts(property.id));
-    const tenantNames = tenants.length ? tenants.map((tenant) => tenant.display_name).join(", ") : "Nessun inquilino";
-    const addressParts = [property.address, property.city]
-      .map((part) => String(part || "").trim())
-      .filter((part) => part && normalizedKey(part) !== "da completare")
-      .filter((part, index, parts) => parts.indexOf(part) === index);
-    return `<article class="dashboard-property-slide">
-      <div class="dashboard-slide-heading"><h3>${esc(property.name)}</h3>${badge(property.status)}</div>
-      <p class="dashboard-slide-address">${esc(addressParts.join(", ") || "Indirizzo da completare")}${property.type ? ` · ${esc(property.type)}` : ""}</p>
-      <div class="dashboard-slide-metrics"><div><span>Canone mensile</span><strong>${monthlyRent}</strong></div><div><span>Costi del mese</span><strong>${cost}</strong></div></div>
-      <div class="dashboard-slide-tenant"><span>Inquilini</span><strong>${esc(tenantNames)}</strong></div>
-      <div class="dashboard-slide-actions"><button class="button secondary small" data-action="open-property" data-property-id="${property.id}">Apri scheda</button>${deleteButton("property", property.id)}</div>
-    </article>`;
+    const rentedPercent = total ? (rented / total) * 100 : 0;
+    const vacantPercent = total ? (vacant / total) * 100 : 0;
+    const otherPercent = Math.max(0, 100 - rentedPercent - vacantPercent);
+    const description = `${rented} immobili fittati, ${vacant} sfitti, ${other} personali o altri su ${total} totali`;
+    return `<div class="occupancy-bar" role="img" aria-label="${esc(description)}"><span class="occupancy-segment rented" style="width:${rentedPercent}%"></span><span class="occupancy-segment vacant" style="width:${vacantPercent}%"></span><span class="occupancy-segment other" style="width:${otherPercent}%"></span></div><div class="occupancy-legend"><span><i class="legend-dot rented"></i>Fittati <strong>${rented}</strong></span><span><i class="legend-dot vacant"></i>Sfitti <strong>${vacant}</strong></span><span><i class="legend-dot other"></i>Personali/altri <strong>${other}</strong></span></div>`;
   }
 
   function paymentRow(payment) {
