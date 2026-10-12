@@ -11,6 +11,8 @@
   let supabaseClient = null;
   let pendingExcelImport = null;
   let excelImporting = false;
+  let remoteRefreshInFlight = false;
+  let lastRemoteRefreshAt = 0;
   const supabasePublicKey = CONFIG.supabasePublishableKey || CONFIG.supabaseAnonKey;
   if (CONFIG.supabaseUrl && supabasePublicKey && window.supabase?.createClient) {
     supabaseClient = window.supabase.createClient(CONFIG.supabaseUrl, supabasePublicKey, {
@@ -766,7 +768,7 @@
           <section class="content" id="view-content"></section>
         </main>
         <nav class="mobile-nav" aria-label="Navigazione mobile">
-          ${items.slice(0, 5).map((item) => mobileNavButton(item)).join("")}
+          ${items.map((item) => mobileNavButton(item)).join("")}
         </nav>
       </div>`;
     renderView();
@@ -779,18 +781,21 @@
 
   function navGraphicIcon(name) {
     const graphic = { dashboard: "dashboard", building: "building", wallet: "wallet", wrench: "maintenance", maintenance: "maintenance", users: "people", people: "people", settings: "settings" }[name] || "dashboard";
-    return `<svg class="nav-3d-icon" aria-hidden="true" focusable="false"><use href="./assets/icons-3d.svg#icon-${graphic}"></use></svg>`;
+    return `<svg class="nav-3d-icon" aria-hidden="true" focusable="false"><use href="#icon-${graphic}"></use></svg>`;
   }
 
   function mobileNavButton(item) {
     const active = state.activeView === item.id || (state.activeView === "tenant" && item.id === "people");
-    return `<button class="${active ? "active" : ""}" data-action="navigate" data-view="${item.id}"><span>${navGraphicIcon(item.icon)}</span>${esc(item.label)}</button>`;
+    const compactLabels = { dashboard: "Home", properties: "Case", finance: "Conti", maintenance: "Lavori", people: "Persone", settings: "Impost." };
+    const label = compactLabels[item.id] || item.label;
+    return `<button class="${active ? "active" : ""}" aria-label="${esc(item.label)}" data-action="navigate" data-view="${item.id}"><span>${navGraphicIcon(item.icon)}</span><small>${esc(label)}</small></button>`;
   }
 
   function pageMeta() {
     const tenant = getProfile(state.selectedTenantId);
+    const greetingName = String(state.profile?.display_name || state.sessionUser?.user_metadata?.display_name || "").trim().split(/\s+/)[0];
     const meta = {
-      dashboard: { title: "Buongiorno, Alberto", subtitle: "Panoramica del patrimonio e delle attività da seguire.", action: "add-property", actionLabel: "+ Nuovo immobile" },
+      dashboard: { title: greetingName ? `Buongiorno, ${greetingName}` : "Buongiorno", subtitle: "Panoramica del patrimonio e delle attività da seguire.", action: "add-property", actionLabel: "+ Nuovo immobile" },
       properties: { title: "Immobili", subtitle: "Schede, contratti, utenze, mutui e documenti.", action: "add-property", actionLabel: "+ Nuovo immobile" },
       property: { title: "Scheda immobile", subtitle: "Gestisci tutti i dati collegati a questa proprietà.", action: "edit-property", actionLabel: "Modifica immobile" },
       finance: { title: "Conto economico", subtitle: "Entrate e uscite per avere un quadro netto del portafoglio.", action: "add-financial", actionLabel: "+ Registra movimento" },
@@ -1146,6 +1151,7 @@
   function renderSettings() {
     const tenants = [...new Map(state.data.profiles.filter((profile) => profile.role === "tenant").map((profile) => [profile.id, profile])).values()];
     return `<div class="stack">
+      <section class="panel pad"><div class="section-head"><div><h2>Account connesso</h2><p>Questa è l’identità Supabase attiva su questo dispositivo.</p></div></div><div class="detail-list"><div class="detail-list-row"><span>Nome profilo</span><strong>${esc(state.profile?.display_name || "—")}</strong></div><div class="detail-list-row"><span>Email di accesso</span><strong>${esc(state.sessionUser?.email || "—")}</strong></div><div class="detail-list-row"><span>Ruolo</span><strong>${esc(state.profile?.role || "—")}</strong></div></div></section>
       ${renderExcelImportCard()}
       ${renderBankTransferCard(tenants)}
       <section class="panel pad"><div class="section-head"><div><h2>Ruoli e permessi</h2><p>Gli accessi sono determinati dal ruolo dell’account e dalle autorizzazioni associate.</p></div></div><div class="role-grid">
@@ -2644,20 +2650,26 @@
       tenant_bank_sender_aliases: remote.tenant_bank_sender_aliases,
       bank_transfer_events: remote.bank_transfer_events
     };
+    lastRemoteRefreshAt = Date.now();
   }
 
-  async function refreshData() {
+  async function refreshData({ silent = false } = {}) {
     if (!supabaseClient || !state.sessionUser) {
       render();
-      toast("Dati locali aggiornati.");
+      if (!silent) toast("Dati locali aggiornati.");
       return;
     }
+    if (remoteRefreshInFlight) return;
+    remoteRefreshInFlight = true;
     try {
       await hydrateRemoteData();
+      lastRemoteRefreshAt = Date.now();
       render();
-      toast("Dati sincronizzati.");
+      if (!silent) toast("Dati sincronizzati.");
     } catch (error) {
       toast(error.message || "Aggiornamento non riuscito.", "error");
+    } finally {
+      remoteRefreshInFlight = false;
     }
   }
 
@@ -2777,6 +2789,14 @@
     document.addEventListener("input", handleInput);
     document.addEventListener("change", handleInput);
     document.addEventListener("submit", handleSubmit);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && state.sessionUser && !state.loading && Date.now() - lastRemoteRefreshAt > 60000) {
+        refreshData({ silent: true });
+      }
+    });
+    window.addEventListener("pageshow", () => {
+      if (state.sessionUser && !state.loading && Date.now() - lastRemoteRefreshAt > 60000) refreshData({ silent: true });
+    });
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => undefined);
     if (supabaseClient) {
       supabaseClient.auth.onAuthStateChange((event) => {
