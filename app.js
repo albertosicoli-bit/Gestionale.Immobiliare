@@ -855,7 +855,7 @@
             ${propertyRows.map((property) => propertyRow(property)).join("") || empty("building", "Nessun immobile", "Aggiungi il primo immobile per iniziare.")}
           </div>
         </section>
-        <section class="panel">
+        <section class="panel portfolio-panel">
           <div class="panel-head"><div><h2>Portafoglio</h2><p>Distribuzione attuale.</p></div></div>
           ${occupancyPanel(properties, rented, vacant)}
         </section>
@@ -882,10 +882,13 @@
   }
 
   function occupancyPanel(properties, rented, vacant) {
-    const personal = properties.filter((property) => property.status === "personal").length;
-    const total = properties.length || 1;
-    const rentedPercent = Math.round((rented / total) * 100);
-    return `<div class="donut-layout"><div class="donut"><span class="donut-label">${rentedPercent}%</span></div><div class="legend"><div class="legend-item"><span class="legend-label"><i class="legend-dot" style="background:#118a7e"></i>Fittati</span><strong>${rented}</strong></div><div class="legend-item"><span class="legend-label"><i class="legend-dot" style="background:#e8ad2b"></i>Sfitti</span><strong>${vacant}</strong></div><div class="legend-item"><span class="legend-label"><i class="legend-dot" style="background:#d9e3e8"></i>Personali/altri</span><strong>${personal}</strong></div></div></div>`;
+    const total = properties.length;
+    const other = Math.max(0, total - rented - vacant);
+    const rentedPercent = total ? Math.round((rented / total) * 100) : 0;
+    const rentedStop = total ? (rented / total) * 100 : 0;
+    const vacantStop = total ? ((rented + vacant) / total) * 100 : 0;
+    const chartLabel = `${rented} immobili fittati su ${total}, pari al ${rentedPercent}%`;
+    return `<div class="donut-layout"><div class="donut-wrap"><div class="donut" role="img" aria-label="${esc(chartLabel)}" style="--rented-stop:${rentedStop}%;--vacant-stop:${vacantStop}%"><span class="donut-label"><strong>${rentedPercent}%</strong><small>fittati</small></span></div><p class="portfolio-note">${rented} su ${total} immobili</p></div><div class="legend"><div class="legend-item"><span class="legend-label"><i class="legend-dot" style="background:#118a7e"></i>Fittati</span><strong>${rented}</strong></div><div class="legend-item"><span class="legend-label"><i class="legend-dot" style="background:#e8ad2b"></i>Sfitti</span><strong>${vacant}</strong></div><div class="legend-item"><span class="legend-label"><i class="legend-dot" style="background:#d9e3e8"></i>Personali/altri</span><strong>${other}</strong></div></div></div>`;
   }
 
   function propertyRow(property) {

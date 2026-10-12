@@ -202,10 +202,16 @@ button.property-title:hover strong { color: var(--teal); }
 .badge.missing { color: #a53e3e; background: #fff0ef; }
 .badge.upcoming { color: #386b9c; background: #eaf3fc; }
 
+.portfolio-panel { display: flex; flex-direction: column; }
+.portfolio-panel .donut-layout { flex: 1; align-content: center; }
 .donut-layout { display: grid; grid-template-columns: 120px minmax(0,1fr); align-items: center; gap: 20px; padding: 10px 20px 21px; }
-.donut { position: relative; display: grid; width: 117px; height: 117px; place-items: center; border-radius: 50%; background: conic-gradient(var(--teal) 0 50%, var(--gold) 50% 75%, #d9e3e8 75% 100%); }
+.donut-wrap { display: grid; justify-items: center; gap: 8px; }
+.donut { position: relative; display: grid; width: 117px; height: 117px; place-items: center; border-radius: 50%; background: conic-gradient(var(--teal) 0 var(--rented-stop), var(--gold) var(--rented-stop) var(--vacant-stop), #d9e3e8 var(--vacant-stop) 100%); }
 .donut::after { width: 82px; height: 82px; border-radius: 50%; content: ""; background: #fff; }
-.donut-label { position: absolute; z-index: 1; font-size: 1.15rem; font-weight: 830; }
+.donut-label { position: absolute; z-index: 1; display: grid; justify-items: center; gap: 1px; }
+.donut-label strong { font-size: 1.15rem; line-height: 1.1; font-weight: 830; }
+.donut-label small { color: var(--ink-soft); font-size: .64rem; font-weight: 700; }
+.portfolio-note { margin: 0; color: var(--ink-soft); font-size: .69rem; font-weight: 650; text-align: center; }
 .legend { display: grid; gap: 10px; }
 .legend-item { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: .78rem; }
 .legend-label { display: flex; align-items: center; gap: 7px; color: var(--ink-soft); }
@@ -486,7 +492,8 @@ tr.clickable:hover td { background: #fbfcfd; }
   .donut-layout { grid-template-columns: 100px minmax(0,1fr); gap: 11px; padding: 8px 15px 16px; }
   .donut { width: 94px; height: 94px; }
   .donut::after { width: 65px; height: 65px; }
-  .donut-label { font-size: .95rem; }
+  .donut-label strong { font-size: .95rem; }
+  .donut-label small { font-size: .59rem; }
   .task-list { padding: 0 15px 7px; }
   .form-grid, .form-grid.three, .detail-grid, .permission-grid { grid-template-columns: 1fr; }
   .tenant-summary-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
