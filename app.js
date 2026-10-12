@@ -663,11 +663,11 @@
   function renderLogin() {
     const connected = Boolean(supabaseClient);
     const recoveringPassword = state.passwordRecovery;
-    document.title = `${APP_NAME} · Accesso`;
+    document.title = "Accesso · Gestione immobiliare";
     app.innerHTML = `
       <main class="login-shell">
         <section class="login-visual" aria-label="Presentazione">
-          <div class="brand brand-inverse">${brandMark()}<span>${esc(APP_NAME)}</span></div>
+          <div class="brand brand-inverse" role="img" aria-label="${esc(APP_NAME)}">${brandMark()}</div>
           <div class="login-copy">
             <p class="eyebrow">Il tuo spazio, sempre con te</p>
             <h1>Gestione immobiliare in un click</h1>
@@ -2797,7 +2797,7 @@
     window.addEventListener("pageshow", () => {
       if (state.sessionUser && !state.loading && Date.now() - lastRemoteRefreshAt > 60000) refreshData({ silent: true });
     });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => undefined);
+    enableAutomaticAppUpdates();
     if (supabaseClient) {
       supabaseClient.auth.onAuthStateChange((event) => {
         if (event === "PASSWORD_RECOVERY") {
@@ -2819,6 +2819,35 @@
     }
     if (window.location.hash.includes("type=recovery")) state.passwordRecovery = true;
     render();
+  }
+
+  function enableAutomaticAppUpdates() {
+    if (!("serviceWorker" in navigator)) return;
+    const reloadKey = "propertyManagerReloadedForUpdate";
+    try {
+      if (sessionStorage.getItem(reloadKey)) sessionStorage.removeItem(reloadKey);
+    } catch { /* Storage can be unavailable in private browsing. */ }
+    let hadController = Boolean(navigator.serviceWorker.controller);
+    let reloading = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!hadController) {
+        hadController = true;
+        return;
+      }
+      if (reloading) return;
+      reloading = true;
+      try { sessionStorage.setItem(reloadKey, "1"); } catch { /* Reload still works without storage. */ }
+      window.location.reload();
+    });
+    navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" }).then((registration) => {
+      const checkForUpdate = () => {
+        if (document.visibilityState === "visible") registration.update().catch(() => undefined);
+      };
+      checkForUpdate();
+      window.setInterval(checkForUpdate, 45000);
+      window.addEventListener("focus", checkForUpdate);
+      document.addEventListener("visibilitychange", checkForUpdate);
+    }).catch(() => undefined);
   }
 
   bootstrap();
