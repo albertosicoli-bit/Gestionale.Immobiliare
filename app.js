@@ -793,7 +793,7 @@
 
   function pageMeta() {
     const tenant = getProfile(state.selectedTenantId);
-    const greetingName = String(state.profile?.display_name || state.sessionUser?.user_metadata?.display_name || "").trim().split(/\s+/)[0];
+    const greetingName = String(state.profile?.display_name || "").trim();
     const meta = {
       dashboard: { title: greetingName ? `Buongiorno, ${greetingName}` : "Buongiorno", subtitle: "Panoramica del patrimonio e delle attività da seguire.", action: "add-property", actionLabel: "+ Nuovo immobile" },
       properties: { title: "Immobili", subtitle: "Schede, contratti, utenze, mutui e documenti.", action: "add-property", actionLabel: "+ Nuovo immobile" },
@@ -851,6 +851,7 @@
         <section class="panel">
           <div class="panel-head"><div><h2>Stato degli immobili</h2><p>Apri una scheda per gestire contratti, documenti e costi.</p></div><button class="button ghost small" data-action="navigate" data-view="properties">Vedi tutti ${uiIcon("arrowRight", 15)}</button></div>
           <div class="property-list">
+            ${propertyRows.length ? `<div class="dashboard-property-labels" aria-hidden="true"><span>Immobile</span><span>Stato</span><span>Canone mensile</span><span>Inquilino</span><span></span></div>` : ""}
             ${propertyRows.map((property) => propertyRow(property)).join("") || empty("building", "Nessun immobile", "Aggiungi il primo immobile per iniziare.")}
           </div>
         </section>
@@ -889,11 +890,11 @@
 
   function propertyRow(property) {
     const tenants = getTenantsForProperty(property.id);
-    return `<article class="property-row">
+    return `<article class="property-row dashboard-property-row">
       <button class="property-title" data-action="open-property" data-property-id="${property.id}"><span class="property-avatar">${navGraphicIcon("building")}</span><span><strong>${esc(property.name)}</strong><span>${esc(property.address)}, ${esc(property.city)}</span></span></button>
-      <span class="tenant-col">${badge(property.status)}</span>
-      <span class="rent-col row-number">${property.status === "rented" ? money(propertyRent(property.id)) : "—"}</span>
-      <span class="row-muted">${tenants.length ? esc(tenants.map((tenant) => tenant.display_name.split(" ")[0]).join(", ")) : "Nessun inquilino"}</span>
+      <span class="tenant-col dashboard-status">${badge(property.status)}</span>
+      <span class="rent-col row-number dashboard-rent">${property.status === "rented" ? money(propertyRent(property.id)) : "—"}</span>
+      <span class="row-muted dashboard-tenant">${tenants.length ? esc(tenants.map((tenant) => tenant.display_name.split(" ")[0]).join(", ")) : "Nessun inquilino"}</span>
       <span class="row-actions"><button class="row-action" aria-label="Apri ${esc(property.name)}" data-action="open-property" data-property-id="${property.id}">${uiIcon("chevronRight", 18)}</button>${deleteButton("property", property.id)}</span>
     </article>`;
   }
@@ -932,7 +933,7 @@
           ${filterChip("all", "Tutti")}${filterChip("rented", "Fittati")}${filterChip("vacant", "Sfitti")}${filterChip("personal", "Personali")}
         </div>
       </div>
-      ${properties.length ? `<div class="card-grid">${properties.map(propertyCard).join("")}</div>` : empty("building", "Nessun immobile trovato", "Modifica i filtri oppure aggiungi una nuova proprietà.")}`;
+      ${properties.length ? `<div class="property-directory">${properties.map(propertyCard).join("")}</div>` : empty("building", "Nessun immobile trovato", "Modifica i filtri oppure aggiungi una nuova proprietà.")}`;
   }
 
   function filterChip(value, label) {
@@ -942,10 +943,18 @@
   function propertyCard(property) {
     const tenants = getTenantsForProperty(property.id);
     const cost = propertyCurrentCosts(property.id);
-    return `<article class="property-card">
-      <div class="card-top"><div><h2 class="card-property-title">${esc(property.name)}</h2><p class="card-address">${esc(property.address)}, ${esc(property.city)}</p></div>${badge(property.status)}</div>
-      <div class="card-metrics"><div class="card-metric"><span>Canone mensile</span><strong>${property.status === "rented" ? money(propertyRent(property.id)) : "—"}</strong></div><div class="card-metric"><span>Costi del mese</span><strong>${money(cost)}</strong></div></div>
-      <div class="card-bottom"><div class="avatar-stack">${tenants.length ? tenants.map((tenant) => `<span class="avatar" title="${esc(tenant.display_name)}">${esc(initials(tenant.display_name))}</span>`).join("") : `<span class="row-muted">Nessun inquilino</span>`}</div><div class="panel-actions"><button class="button secondary small" data-action="open-property" data-property-id="${property.id}">Apri scheda</button>${deleteButton("property", property.id)}</div></div>
+    const addressParts = [property.address, property.postal_code, property.city]
+      .map((part) => String(part || "").trim())
+      .filter((part) => part && normalizedKey(part) !== "da completare")
+      .filter((part, index, parts) => parts.indexOf(part) === index);
+    const addressLabel = addressParts.join(", ") || "Indirizzo da completare";
+    return `<article class="property-directory-row">
+      <div class="property-directory-identity"><h2>${esc(property.name)}</h2><p>${esc(addressLabel)}</p><span>${esc(property.type || "Immobile")}</span></div>
+      <div class="property-directory-status">${badge(property.status)}</div>
+      <div class="property-directory-metric"><span>Canone mensile</span><strong>${property.status === "rented" ? money(propertyRent(property.id)) : "—"}</strong></div>
+      <div class="property-directory-metric"><span>Costi del mese</span><strong>${money(cost)}</strong></div>
+      <div class="property-directory-tenants"><span>Inquilini</span><strong>${tenants.length ? esc(tenants.map((tenant) => tenant.display_name).join(", ")) : "Nessun inquilino"}</strong></div>
+      <div class="property-directory-actions"><button class="button secondary small" data-action="open-property" data-property-id="${property.id}">Apri scheda</button>${deleteButton("property", property.id)}</div>
     </article>`;
   }
 
