@@ -667,15 +667,15 @@
         <section class="login-visual" aria-label="Presentazione">
           <div class="brand brand-inverse">${brandMark()}<span>${esc(APP_NAME)}</span></div>
           <div class="login-copy">
-            <p class="eyebrow">Gestione immobiliare</p>
-            <h1>Immobili. Persone. Controllo.</h1>
+            <p class="eyebrow">Il tuo spazio, sempre con te</p>
+            <h1>Gestione immobiliare in un click</h1>
             <div class="login-features" aria-label="Funzioni principali">
               <span>Immobili e contratti</span>
               <span>Inquilini e pagamenti</span>
               <span>Documenti e manutenzioni</span>
             </div>
           </div>
-          <div class="login-foot">Tutto il tuo patrimonio immobiliare, in un unico spazio.</div>
+          <div class="login-foot">Immobili, inquilini e scadenze, finalmente in ordine.</div>
         </section>
         <section class="login-panel">
           <div class="login-card">
@@ -729,7 +729,7 @@
   }
 
   function brandMark() {
-    return `<span class="brand-mark" aria-hidden="true">${uiIcon("building", 24)}</span>`;
+    return `<span class="brand-mark" aria-hidden="true"><svg class="brand-home-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 10 8.5-6.5 8.5 6.5M5.5 9v11h13V9M9.5 20v-6h5v6"/><path d="M9 10h.01M15 10h.01"/></svg></span>`;
   }
 
   function renderShell() {
@@ -1813,20 +1813,28 @@
   }
 
   function toast(message, type = "success") {
+    const isError = type === "error";
+    // A native modal dialog lives in the browser's top layer. Put notices
+    // inside that layer while it is open so the backdrop cannot cover them.
+    if (dialog.open && toastRegion.parentElement !== dialog) dialog.append(toastRegion);
     const el = document.createElement("div");
-    el.className = `toast ${type === "error" ? "error" : ""}`;
-    el.innerHTML = `<span class="toast-dot"></span><span>${esc(message)}</span>`;
+    el.className = `toast ${isError ? "error" : ""}`;
+    el.setAttribute("role", isError ? "alert" : "status");
+    el.innerHTML = `<span class="toast-dot" aria-hidden="true"></span><span class="toast-message">${esc(message)}</span><button class="toast-close" type="button" aria-label="Chiudi avviso">×</button>`;
+    el.querySelector(".toast-close").addEventListener("click", () => el.remove());
     toastRegion.append(el);
-    window.setTimeout(() => el.remove(), 3600);
+    window.setTimeout(() => el.remove(), isError ? 12000 : 5000);
   }
 
   function openDialog(content) {
     dialog.innerHTML = content;
     if (!dialog.open) dialog.showModal();
+    dialog.append(toastRegion);
   }
 
   function closeDialog() {
     if (dialog.open) dialog.close();
+    document.body.append(toastRegion);
     dialog.innerHTML = "";
   }
 
