@@ -2592,14 +2592,21 @@
   async function hydrateRemoteData() {
     if (!supabaseClient || !state.sessionUser) return;
     const tables = [
-      "properties", "property_private_details", "profiles", "leases", "lease_tenants", "rent_payments", "utility_accounts", "utility_bills", "mortgages", "financial_entries", "documents", "service_providers", "maintenance_jobs", "property_tenant_permissions", "tenant_bank_sender_aliases", "bank_transfer_events"
+      "properties", "property_private_details", "profiles", "leases", "lease_tenants", "rent_payments", "utility_accounts", "utility_bills", "mortgages", "financial_entries", "documents", "service_providers", "maintenance_jobs", "property_tenant_permissions"
     ];
     const results = await Promise.all(tables.map(async (table) => {
       const { data, error } = await supabaseClient.from(table).select("*");
       if (error) throw new Error(`Errore nel leggere ${table}: ${error.message}`);
       return [table, data || []];
     }));
-    const remote = Object.fromEntries(results);
+    const optionalTables = ["tenant_bank_sender_aliases", "bank_transfer_events"];
+    const optionalResults = await Promise.all(optionalTables.map(async (table) => {
+      const { data, error } = await supabaseClient.from(table).select("*");
+      if (error && ["42P01", "PGRST205"].includes(error.code)) return [table, []];
+      if (error) throw new Error(`Errore nel leggere ${table}: ${error.message}`);
+      return [table, data || []];
+    }));
+    const remote = Object.fromEntries([...results, ...optionalResults]);
     const tenantIdsByLease = new Map();
     remote.lease_tenants.forEach((relation) => {
       if (!tenantIdsByLease.has(relation.lease_id)) tenantIdsByLease.set(relation.lease_id, []);
