@@ -405,13 +405,15 @@ tr.clickable:hover td { background: #fbfcfd; }
 .callout.danger { color: #994444; background: #fff1f1; }
 .form-separator { height: 1px; margin: 18px 0; background: var(--line); }
 
-.toast-region { position: fixed; z-index: 1000; right: 18px; bottom: 18px; display: grid; gap: 9px; width: min(420px, calc(100vw - 36px)); pointer-events: none; }
+.toast-region { position: fixed; z-index: 2147483647; top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); display: grid; gap: 9px; width: min(420px, calc(100vw - 28px)); pointer-events: none; }
 .toast { display: flex; gap: 10px; align-items: flex-start; padding: 13px 14px; border: 1px solid #dfe9ed; border-radius: 13px; color: var(--ink); background: #fff; box-shadow: 0 12px 26px rgba(18,48,71,.24); font-size: .8rem; line-height: 1.45; animation: slide-in .18s ease-out; pointer-events: auto; }
 .toast-message { flex: 1 1 auto; overflow-wrap: anywhere; }
 .toast-close { flex: 0 0 auto; border: 0; padding: 0 2px; color: var(--ink-soft); background: transparent; font-size: 1.15rem; line-height: 1; cursor: pointer; }
 .toast .toast-dot { width: 9px; height: 9px; flex: 0 0 auto; margin-top: 3px; border-radius: 50%; background: var(--teal); }
 .toast.error { border-color: #e7b5b5; background: #fff5f5; }
 .toast.error .toast-dot { background: var(--danger); }
+.payment-note-cell { min-width: 150px; max-width: 280px; white-space: normal; overflow-wrap: anywhere; color: var(--ink-soft); font-size: .78rem; }
+.payment-history-head { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
 @keyframes slide-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 .mobile-nav { display: none; }

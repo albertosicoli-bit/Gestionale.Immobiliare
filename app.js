@@ -1117,7 +1117,7 @@
         <article class="data-tile"><span>Residuo atteso da verificare</span><strong>${money(outstanding)}</strong></article>
       </section>
       <section class="panel"><div class="panel-head"><div><h2>Contratti</h2><p>Data di ingresso, scadenza e importo pattuito.</p></div></div>${leases.length ? `<div class="contract-list">${leases.map((lease) => `<article class="contract-summary"><div class="section-head"><div><h3>${esc(lease.contract_reference || getProperty(lease.property_id)?.name || "Contratto di locazione")}</h3><p>${esc(getProperty(lease.property_id)?.name || "Immobile non disponibile")} · ${dateLabel(lease.start_date)} — ${dateLabel(lease.end_date)}</p></div><div class="panel-actions">${badge(lease.status === "active" ? "active" : lease.status)}${deleteButton("lease", lease.id)}</div></div><div class="detail-grid"><article class="data-tile"><span>Canone mensile</span><strong>${money(lease.monthly_rent)}</strong></article><article class="data-tile"><span>Deposito</span><strong>${money(lease.deposit)}</strong></article><article class="data-tile"><span>Scadenza mensile</span><strong>Giorno ${esc(lease.due_day || "—")}</strong></article></div></article>`).join("")}</div>` : empty("fileText", "Nessun contratto collegato", "Collega l’inquilino a un contratto dalla scheda dell’immobile.")}</section>
-      <section class="panel"><div class="panel-head"><div><h2>Storico canoni</h2><p>Una riga per ogni mese del contratto. I mesi senza registrazione sono da verificare.</p></div></div>${ledger.length ? `<div class="callout history-note">Se più inquilini condividono lo stesso contratto, importo e stato del canone sono riferiti al contratto condiviso.</div><div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Immobile</th><th>Scadenza</th><th>Dovuto</th><th>Pagato</th><th>Stato</th><th></th></tr></thead><tbody>${ledger.map((row) => rentLedgerRow(row)).join("")}</tbody></table></div>` : empty("coins", "Nessuno storico canoni", "Le rate mensili compariranno qui quando è presente un contratto.")}</section>
+      <section class="panel"><div class="panel-head"><div><h2>Previsionale e storico canoni</h2><p>Scadenze future, pagamenti registrati e note associate a ogni rata.</p></div></div>${ledger.length ? `<div class="callout history-note">Se più inquilini condividono lo stesso contratto, importo e stato del canone sono riferiti al contratto condiviso.</div><div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Immobile</th><th>Scadenza</th><th>Dovuto</th><th>Pagato</th><th>Stato</th><th>Nota</th><th></th></tr></thead><tbody>${ledger.map((row) => rentLedgerRow(row)).join("")}</tbody></table></div>` : empty("coins", "Nessuno storico canoni", "Le rate mensili compariranno qui quando è presente un contratto.")}</section>
       ${utilitySection}
     </div>`;
   }
@@ -1130,9 +1130,9 @@
       const statusAction = row.status !== "cancelled"
         ? `<button class="button secondary small" data-action="set-rent-payment-status" data-lease-id="${esc(row.lease.id)}" data-period="${esc(row.period)}" data-status="${row.status === "paid" ? "pending" : "paid"}">${row.status === "paid" ? "Riapri" : "Segna pagato"}</button>`
         : "";
-      action = `<div class="panel-actions">${statusAction}${deleteButton("payment", row.payment.id)}</div>`;
+      action = `<div class="panel-actions"><button class="button ghost small" data-action="edit-payment-note" data-payment-id="${esc(row.payment.id)}">${row.payment.note ? "Modifica nota" : "Aggiungi nota"}</button>${statusAction}${deleteButton("payment", row.payment.id)}</div>`;
     }
-    return `<tr><td><strong>${esc(monthLabel(row.period))}</strong><br><small>${esc(row.lease.contract_reference || "Contratto")}</small></td><td>${esc(getProperty(row.lease.property_id)?.name || "—")}</td><td>${dateLabel(row.dueDate)}</td><td class="number">${money(row.amountDue)}</td><td class="number">${money(row.amountPaid)}</td><td>${badge(row.status)}${row.status === "missing" ? `<br><small>da verificare</small>` : ""}</td><td>${action}</td></tr>`;
+    return `<tr><td><strong>${esc(monthLabel(row.period))}</strong><br><small>${esc(row.lease.contract_reference || "Contratto")}</small></td><td>${esc(getProperty(row.lease.property_id)?.name || "—")}</td><td>${dateLabel(row.dueDate)}</td><td class="number">${money(row.amountDue)}</td><td class="number">${money(row.amountPaid)}</td><td>${badge(row.status)}${row.status === "missing" ? `<br><small>da verificare</small>` : ""}</td><td class="payment-note-cell">${esc(row.payment?.note || "—")}</td><td>${action}</td></tr>`;
   }
 
   function tenantUtilityBillRow(bill, utilities) {
@@ -1775,6 +1775,9 @@
     const lease = getPrimaryLease(property.id);
     const permissions = getPermissions(property.id, tenantId);
     const payments = state.data.rent_payments.filter((payment) => payment.property_id === property.id && (!payment.tenant_id || payment.tenant_id === tenantId)).sort((a,b) => String(b.period).localeCompare(String(a.period)));
+    const rentRows = lease ? leaseRentLedger(lease).sort((a,b) => String(a.period).localeCompare(String(b.period))) : [];
+    const nextRows = rentRows.filter((row) => row.period >= isoMonth());
+    const historyRows = rentRows.filter((row) => row.period < isoMonth()).reverse();
     const currentPayment = payments.find((payment) => payment.period === isoMonth()) || payments[0];
     const docs = state.data.documents.filter((document) => document.property_id === property.id && document.visible_to_tenant);
     app.innerHTML = `
@@ -1787,11 +1790,16 @@
             <section class="panel tenant-address"><p class="eyebrow">Immobile</p><h3>${esc(property.name)}</h3><p>${esc(property.address)}, ${esc(property.postal_code || "")} ${esc(property.city)}</p><dl><div><dt>Contratto</dt><dd>${lease ? dateLabel(lease.end_date) : "—"}</dd></div><div><dt>Canone</dt><dd>${money(lease?.monthly_rent || 0)}</dd></div></dl></section>
           </div>
           <div style="margin-top:18px">
-            <section class="panel"><div class="panel-head"><div><h2>I tuoi pagamenti</h2><p>Storico dei canoni e contabili caricate.</p></div></div>${payments.length ? `<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Scadenza</th><th>Importo</th><th>Contabile</th><th>Stato</th></tr></thead><tbody>${payments.map((payment) => `<tr><td>${esc(monthLabel(payment.period))}</td><td>${dateLabel(payment.due_date)}</td><td class="number">${money(payment.amount_due)}</td><td>${payment.receipt_name ? esc(payment.receipt_name) : "—"}</td><td>${badge(payment.status)}</td></tr>`).join("")}</tbody></table></div>` : empty("coins", "Nessun canone disponibile", "I prossimi pagamenti saranno indicati qui.")}</section>
+            <section class="panel tenant-payment-ledger"><div class="panel-head"><div><h2>Previsionale dei pagamenti</h2><p>Le prossime scadenze previste dal tuo contratto.</p></div></div>${nextRows.length ? `<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Scadenza</th><th>Importo</th><th>Pagato il</th><th>Stato</th><th>Nota</th></tr></thead><tbody>${nextRows.map(tenantPaymentRow).join("")}</tbody></table></div>` : empty("coins", "Nessuna scadenza futura", "Non risultano canoni previsti per il periodo del contratto.")}<div class="panel-head payment-history-head"><div><h2>Storico pagamenti</h2><p>Pagamenti effettuati, importi e note per ogni mese.</p></div></div>${historyRows.length ? `<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Scadenza</th><th>Importo</th><th>Pagato il</th><th>Contabile</th><th>Stato</th><th>Nota</th></tr></thead><tbody>${historyRows.map(tenantPaymentRow).join("")}</tbody></table></div>` : empty("coins", "Nessun pagamento nello storico", "Lo storico comparirà qui dopo la prima scadenza mensile.")}</section>
           </div>
           ${permissions.show_documents ? `<section class="panel tenant-documents-panel"><div class="panel-head"><div><h2>Documenti condivisi</h2><p>File resi disponibili per la tua abitazione.</p></div></div>${docs.length ? `<div class="task-list">${docs.map((document) => `<article class="task-row"><span class="property-avatar">${uiIcon("fileText", 18)}</span><div class="task-copy"><strong>${esc(document.name)}</strong><span>${esc(document.category)} · ${dateLabel(document.uploaded_at)}</span></div></article>`).join("")}</div>` : empty("fileText", "Nessun documento condiviso", "Quando l’amministratore condividerà un file, lo troverai qui.")}</section>` : ""}
         </section>
       </main>`;
+  }
+
+  function tenantPaymentRow(row) {
+    const payment = row.payment;
+    return `<tr><td>${esc(monthLabel(row.period))}</td><td>${dateLabel(row.dueDate)}</td><td class="number">${money(row.amountDue)}</td><td>${payment?.paid_at ? dateLabel(payment.paid_at) : "—"}</td>${row.period < isoMonth() ? `<td>${payment?.receipt_name ? esc(payment.receipt_name) : "—"}</td>` : ""}<td>${badge(row.status)}</td><td class="payment-note-cell">${esc(payment?.note || "—")}</td></tr>`;
   }
 
   function empty(iconName, title, description) {
@@ -1818,7 +1826,7 @@
     el.innerHTML = `<span class="toast-dot" aria-hidden="true"></span><span class="toast-message">${esc(message)}</span><button class="toast-close" type="button" aria-label="Chiudi avviso">×</button>`;
     el.querySelector(".toast-close").addEventListener("click", () => el.remove());
     toastRegion.append(el);
-    window.setTimeout(() => el.remove(), isError ? 12000 : 5000);
+    window.setTimeout(() => el.remove(), isError ? 15000 : 8000);
   }
 
   function openDialog(content) {
@@ -1898,7 +1906,7 @@
       if (!activeLease) { toast("Collega prima un contratto attivo a questo immobile.", "error"); return; }
       const period = context.period || isoMonth();
       const dueDate = context.dueDate || `${period}-${String(activeLease.due_day || 5).padStart(2, "0")}`;
-      const body = `<form data-form="payment" data-tenant-id="${esc(context.tenantId || "")}"><input type="hidden" name="property_id" value="${esc(activeLease.property_id)}" /><input type="hidden" name="lease_id" value="${esc(activeLease.id)}" /><div class="form-grid">${field("Periodo", "period", "month", period, { required: true })}${field("Scadenza", "due_date", "date", dueDate, { required: true })}${field("Importo dovuto", "amount_due", "number", activeLease.monthly_rent, { required: true, attributes: "min=0 step=0.01" })}${selectField("Stato iniziale", "status", "pending", [["pending", "Da pagare"], ["paid", "Pagato"], ["partial", "Parziale"]])}</div><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">Crea canone</button></div></form>`;
+      const body = `<form data-form="payment" data-tenant-id="${esc(context.tenantId || "")}"><input type="hidden" name="property_id" value="${esc(activeLease.property_id)}" /><input type="hidden" name="lease_id" value="${esc(activeLease.id)}" /><div class="form-grid">${field("Periodo", "period", "month", period, { required: true })}${field("Scadenza", "due_date", "date", dueDate, { required: true })}${field("Importo dovuto", "amount_due", "number", activeLease.monthly_rent, { required: true, attributes: "min=0 step=0.01" })}${selectField("Stato iniziale", "status", "pending", [["pending", "Da pagare"], ["paid", "Pagato"], ["partial", "Parziale"]])}<div class="field span-2"><label for="field-note">Nota per questa rata</label><textarea id="field-note" name="note" placeholder="es. 100 euro anticipo idraulico"></textarea></div></div><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">Crea canone</button></div></form>`;
       openDialog(dialogTemplate("Nuovo canone", "Crea una richiesta mensile per gli inquilini del contratto attivo.", body));
       return;
     }
@@ -1906,6 +1914,13 @@
       const payment = state.data.rent_payments.find((item) => item.id === context.paymentId);
       const body = `<form data-form="payment-proof" data-payment-id="${esc(payment?.id || "")}" data-property-id="${esc(context.propertyId || payment?.property_id || "")}" enctype="multipart/form-data"><div class="callout">Carica la contabile del bonifico. L’amministratore la vedrà e potrà confermare il pagamento.</div><div class="form-separator"></div><label class="file-input"><input type="file" name="file" required accept=".pdf,.jpg,.jpeg,.png"/><span><strong>Seleziona contabile</strong><span>PDF, JPG o PNG.</span></span></label><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">Invia contabile</button></div></form>`;
       openDialog(dialogTemplate("Carica contabile", `Pagamento ${payment ? monthLabel(payment.period) : ""}`, body));
+      return;
+    }
+    if (kind === "payment-note") {
+      const payment = state.data.rent_payments.find((item) => item.id === context.paymentId);
+      if (!payment) { toast("Canone non trovato.", "error"); return; }
+      const body = `<form data-form="payment-note" data-payment-id="${esc(payment.id)}"><div class="field"><label for="field-payment-note">Nota della rata · ${esc(monthLabel(payment.period))}</label><textarea id="field-payment-note" name="note" maxlength="500" placeholder="es. 100 euro anticipo idraulico">${esc(payment.note || "")}</textarea><small>La nota sarà visibile anche all’inquilino nella riga del pagamento.</small></div><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">Salva nota</button></div></form>`;
+      openDialog(dialogTemplate("Nota del pagamento", "Aggiungi un dettaglio alla singola rata.", body));
       return;
     }
     if (kind === "permissions") {
@@ -2019,6 +2034,7 @@
       }
       return;
     }
+    if (action === "edit-payment-note") return openForm("payment-note", { paymentId: target.dataset.paymentId || "" });
     if (action === "set-utility-bill-status") {
       try {
         await setUtilityBillStatus(target.dataset.billId, target.dataset.status);
@@ -2276,11 +2292,20 @@
       }
       if (type === "payment") {
         const lease = getLease(value("lease_id"));
-        const payment = { id: newId(), property_id: value("property_id"), lease_id: value("lease_id"), tenant_id: form.dataset.tenantId || lease?.tenant_ids?.[0] || null, period: value("period"), due_date: value("due_date"), amount_due: Number(value("amount_due")), amount_paid: value("status") === "paid" ? Number(value("amount_due")) : 0, paid_at: value("status") === "paid" ? dateISO() : null, status: value("status"), receipt_name: "" };
+        const payment = { id: newId(), property_id: value("property_id"), lease_id: value("lease_id"), tenant_id: form.dataset.tenantId || lease?.tenant_ids?.[0] || null, period: value("period"), due_date: value("due_date"), amount_due: Number(value("amount_due")), amount_paid: value("status") === "paid" ? Number(value("amount_due")) : 0, paid_at: value("status") === "paid" ? dateISO() : null, status: value("status"), receipt_name: "", note: value("note") };
         assertNoDuplicate(state.data.rent_payments, payment, (saved, next) => saved.lease_id === next.lease_id && String(saved.period || "").slice(0, 7) === String(next.period || "").slice(0, 7), "Per questo contratto il canone del mese è già registrato.");
         await syncEntity("payment", payment, "insert");
         state.data.rent_payments.push(payment);
         finishMutation("Canone creato.");
+        return;
+      }
+      if (type === "payment-note") {
+        const payment = state.data.rent_payments.find((item) => item.id === form.dataset.paymentId);
+        if (!payment) throw new Error("Canone non trovato.");
+        const updatedPayment = { ...payment, note: value("note").slice(0, 500) };
+        await syncEntity("payment", updatedPayment, "update");
+        Object.assign(payment, updatedPayment);
+        finishMutation("Nota del pagamento salvata.");
         return;
       }
       if (type === "payment-proof") {
