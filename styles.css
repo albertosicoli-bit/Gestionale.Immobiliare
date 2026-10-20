@@ -349,12 +349,14 @@ tr.clickable:hover td { background: #fbfcfd; }
 .rent-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 20px; }
 .rent-actions .button { color: var(--navy); background: #fff; }
 .rent-actions .button.secondary { border-color: rgba(255,255,255,.24); color: #fff; background: rgba(255,255,255,.1); }
+.rent-upload-hint { align-self: center; color: rgba(255,255,255,.82); font-size: .75rem; line-height: 1.4; }
 .tenant-address { padding: 20px; }
 .tenant-address h3 { margin: 3px 0 7px; font-size: 1rem; }
 .tenant-address p { margin: 0; color: var(--ink-soft); font-size: .77rem; line-height: 1.5; }
 .tenant-address dl { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 21px 0 0; }
 .tenant-address dt { color: var(--ink-soft); font-size: .67rem; }
 .tenant-address dd { margin: 4px 0 0; font-size: .8rem; font-weight: 760; }
+.tenant-address .tenant-due-row { grid-column: 1 / -1; padding-top: 10px; border-top: 1px solid var(--line); }
 
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
 .form-grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); }

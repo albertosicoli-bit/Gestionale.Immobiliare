@@ -1778,7 +1778,7 @@
     const rentRows = lease ? leaseRentLedger(lease).sort((a,b) => String(a.period).localeCompare(String(b.period))) : [];
     const nextRows = rentRows.filter((row) => row.period >= isoMonth());
     const historyRows = rentRows.filter((row) => row.period < isoMonth()).reverse();
-    const currentPayment = payments.find((payment) => payment.period === isoMonth()) || payments[0];
+    const currentPayment = payments.find((payment) => String(payment.period || "").slice(0, 7) === isoMonth());
     const docs = state.data.documents.filter((document) => document.property_id === property.id && document.visible_to_tenant);
     app.innerHTML = `
       <main class="tenant-shell">
@@ -1786,8 +1786,8 @@
         <section class="tenant-main">
           <div class="tenant-welcome"><div><p class="eyebrow">Area inquilino</p><h1>La tua abitazione, tutto in ordine.</h1><p>Consulta solo le informazioni che l’amministratore ha reso disponibili per te.</p></div></div>
           <div class="tenant-grid">
-            <section class="rent-card"><p class="eyebrow">Canone ${esc(monthLabel(currentPayment?.period || isoMonth()))}</p><h2>${currentPayment?.status === "paid" ? "Pagamento registrato" : "Prossimo pagamento"}</h2><div class="rent-amount">${money(currentPayment?.amount_due || lease?.monthly_rent || 0)}</div><p>Scadenza ${dateLabel(currentPayment?.due_date || `${isoMonth()}-${String(lease?.due_day || 5).padStart(2, "0")}`)} · Stato: ${statusLabel(currentPayment?.status || "pending")}</p><div class="rent-actions">${permissions.allow_payment_upload ? `<button class="button" data-action="upload-payment" data-payment-id="${currentPayment?.id || ""}" data-property-id="${property.id}">${uiIcon("upload", 16)} Carica contabile</button>` : ""}${currentPayment?.receipt_name ? `<span class="button secondary">${uiIcon("checkCircle", 15)} ${esc(currentPayment.receipt_name)}</span>` : ""}</div></section>
-            <section class="panel tenant-address"><p class="eyebrow">Immobile</p><h3>${esc(property.name)}</h3><p>${esc(property.address)}, ${esc(property.postal_code || "")} ${esc(property.city)}</p><dl><div><dt>Contratto</dt><dd>${lease ? dateLabel(lease.end_date) : "—"}</dd></div><div><dt>Canone</dt><dd>${money(lease?.monthly_rent || 0)}</dd></div></dl></section>
+            <section class="rent-card"><p class="eyebrow">Canone del mese corrente · ${esc(monthLabel(isoMonth()))}</p><h2>${currentPayment?.status === "paid" ? "Pagamento registrato" : currentPayment ? "Pagamento del mese" : "Canone previsto"}</h2><div class="rent-amount">${money(currentPayment?.amount_due ?? lease?.monthly_rent ?? 0)}</div><p>Scadenza ${dateLabel(currentPayment?.due_date || `${isoMonth()}-${String(lease?.due_day || 5).padStart(2, "0")}`)} · Stato: ${currentPayment ? statusLabel(currentPayment.status) : "Da registrare"}</p><div class="rent-actions">${permissions.allow_payment_upload && currentPayment ? `<button class="button" data-action="upload-payment" data-payment-id="${currentPayment.id}" data-property-id="${property.id}">${uiIcon("upload", 16)} Carica contabile</button>` : permissions.allow_payment_upload ? `<span class="rent-upload-hint">La rata del mese deve essere registrata dall’amministratore prima di caricare la contabile.</span>` : ""}${currentPayment?.receipt_name ? `<span class="button secondary">${uiIcon("checkCircle", 15)} ${esc(currentPayment.receipt_name)}</span>` : ""}</div></section>
+            <section class="panel tenant-address"><p class="eyebrow">Immobile</p><h3>${esc(property.name)}</h3><p>${esc(property.address)}, ${esc(property.postal_code || "")} ${esc(property.city)}</p><dl><div><dt>Fine contratto</dt><dd>${lease ? dateLabel(lease.end_date) : "—"}</dd></div><div><dt>Canone</dt><dd>${money(lease?.monthly_rent || 0)}</dd></div><div class="tenant-due-row"><dt>Scadenza canone</dt><dd>${lease ? `Ogni giorno ${esc(lease.due_day || 5)} del mese` : "—"}</dd></div></dl></section>
           </div>
           <div style="margin-top:18px">
             <section class="panel tenant-payment-ledger"><div class="panel-head"><div><h2>Previsionale dei pagamenti</h2><p>Le prossime scadenze previste dal tuo contratto.</p></div></div>${nextRows.length ? `<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Scadenza</th><th>Importo</th><th>Pagato il</th><th>Stato</th><th>Nota</th></tr></thead><tbody>${nextRows.map(tenantPaymentRow).join("")}</tbody></table></div>` : empty("coins", "Nessuna scadenza futura", "Non risultano canoni previsti per il periodo del contratto.")}<div class="panel-head payment-history-head"><div><h2>Storico pagamenti</h2><p>Pagamenti effettuati, importi e note per ogni mese.</p></div></div>${historyRows.length ? `<div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Scadenza</th><th>Importo</th><th>Pagato il</th><th>Contabile</th><th>Stato</th><th>Nota</th></tr></thead><tbody>${historyRows.map(tenantPaymentRow).join("")}</tbody></table></div>` : empty("coins", "Nessun pagamento nello storico", "Lo storico comparirà qui dopo la prima scadenza mensile.")}</section>
@@ -2792,8 +2792,8 @@
   }
 
   async function uploadPaymentProof(file, payment) {
-    const path = `tenant/${state.sessionUser.id}/${payment.id}/${safeFileName(file.name)}`;
-    const { error } = await supabaseClient.storage.from("property-documents").upload(path, file, { upsert: true });
+    const path = `tenant/${state.sessionUser.id}/${payment.id}/${Date.now()}-${safeFileName(file.name)}`;
+    const { error } = await supabaseClient.storage.from("property-documents").upload(path, file, { upsert: false });
     if (error) throw new Error(`Caricamento contabile non riuscito: ${error.message}`);
     return path;
   }
