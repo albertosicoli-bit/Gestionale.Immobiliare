@@ -2226,7 +2226,7 @@
         return;
       }
       if (type === "maintenance") {
-        const job = { id: newId(), property_id: value("property_id"), provider_id: value("provider_id") || null, title: value("title"), category: value("category"), priority: value("priority"), status: value("status"), scheduled_date: value("scheduled_date"), completed_date: value("status") === "done" ? value("scheduled_date") : "", total_cost: Number(value("total_cost") || 0), notes: value("notes") };
+        const job = { id: newId(), property_id: value("property_id"), provider_id: value("provider_id") || null, title: value("title"), category: value("category"), priority: value("priority"), status: value("status"), scheduled_date: value("scheduled_date"), completed_date: value("status") === "done" ? value("scheduled_date") : null, total_cost: Number(value("total_cost") || 0), notes: value("notes") };
         assertNoDuplicate(state.data.maintenance_jobs, job, (saved, next) =>
           saved.property_id === next.property_id && saved.provider_id === next.provider_id &&
           normalizedKey(saved.title) === normalizedKey(next.title) && saved.scheduled_date === next.scheduled_date,
