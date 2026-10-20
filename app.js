@@ -1068,7 +1068,7 @@
   }
 
   function maintenanceTable(jobs) {
-    return `<div class="table-wrap"><table><thead><tr><th>Intervento</th><th>Immobile</th><th>Fornitore</th><th>Data</th><th>Costo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${jobs.map((job) => `<tr><td><strong>${esc(job.title)}</strong><br><small>${esc(job.category || "")}</small></td><td>${esc(getProperty(job.property_id)?.name || "—")}</td><td>${esc(getProvider(job.provider_id)?.display_name || "Non assegnato")}</td><td>${dateLabel(job.completed_date || job.scheduled_date)}</td><td class="number">${job.total_cost ? money(job.total_cost) : "—"}</td><td>${badge(job.status)}</td><td><div class="panel-actions"><button class="button secondary small" data-action="edit-maintenance" data-job-id="${esc(job.id)}">Modifica stato</button>${deleteButton("maintenance", job.id)}</div></td></tr>`).join("")}</tbody></table></div>`;
+    return `<div class="table-wrap"><table><thead><tr><th>Intervento</th><th>Immobile</th><th>Fornitore</th><th>Data</th><th>Costo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${jobs.map((job) => `<tr class="clickable-row" data-action="edit-maintenance" data-job-id="${esc(job.id)}" tabindex="0" aria-label="Apri dettagli intervento ${esc(job.title)}"><td><strong>${esc(job.title)}</strong><br><small>${esc(job.category || "")}</small></td><td>${esc(getProperty(job.property_id)?.name || "—")}</td><td>${esc(getProvider(job.provider_id)?.display_name || "Non assegnato")}</td><td>${dateLabel(job.completed_date || job.scheduled_date)}</td><td class="number">${job.total_cost ? money(job.total_cost) : "—"}</td><td>${badge(job.status)}</td><td><div class="panel-actions"><button class="button secondary small" data-action="edit-maintenance" data-job-id="${esc(job.id)}">Apri dettagli</button>${deleteButton("maintenance", job.id)}</div></td></tr>`).join("")}</tbody></table></div>`;
   }
 
   function providerCard(provider) {
@@ -1132,7 +1132,7 @@
         : "";
       action = `<div class="panel-actions"><button class="button ghost small" data-action="edit-payment-note" data-payment-id="${esc(row.payment.id)}">${row.payment.note ? "Modifica nota" : "Aggiungi nota"}</button>${statusAction}${deleteButton("payment", row.payment.id)}</div>`;
     }
-    return `<tr><td><strong>${esc(monthLabel(row.period))}</strong><br><small>${esc(row.lease.contract_reference || "Contratto")}</small></td><td>${esc(getProperty(row.lease.property_id)?.name || "—")}</td><td>${dateLabel(row.dueDate)}</td><td class="number">${money(row.amountDue)}</td><td class="number">${money(row.amountPaid)}</td><td>${badge(row.status)}${row.status === "missing" ? `<br><small>da verificare</small>` : ""}</td><td class="payment-note-cell">${esc(row.payment?.note || "—")}</td><td>${action}</td></tr>`;
+    return `<tr class="clickable-row" data-action="${row.payment ? "payment-detail" : "add-payment"}" data-payment-id="${esc(row.payment?.id || "")}" data-property-id="${esc(row.lease.property_id)}" data-lease-id="${esc(row.lease.id)}" data-period="${esc(row.period)}" data-due-date="${esc(row.dueDate)}" tabindex="0" aria-label="Apri dettagli canone ${esc(monthLabel(row.period))}"><td><strong>${esc(monthLabel(row.period))}</strong><br><small>${esc(row.lease.contract_reference || "Contratto")}</small></td><td>${esc(getProperty(row.lease.property_id)?.name || "—")}</td><td>${dateLabel(row.dueDate)}</td><td class="number">${money(row.amountDue)}</td><td class="number">${money(row.amountPaid)}</td><td>${badge(row.status)}${row.status === "missing" ? `<br><small>da verificare</small>` : ""}</td><td class="payment-note-cell">${esc(row.payment?.note || "—")}</td><td>${action}</td></tr>`;
   }
 
   function tenantUtilityBillRow(bill, utilities) {
@@ -1799,7 +1799,25 @@
 
   function tenantPaymentRow(row) {
     const payment = row.payment;
-    return `<tr><td>${esc(monthLabel(row.period))}</td><td>${dateLabel(row.dueDate)}</td><td class="number">${money(row.amountDue)}</td><td>${payment?.paid_at ? dateLabel(payment.paid_at) : "—"}</td>${row.period < isoMonth() ? `<td>${payment?.receipt_name ? esc(payment.receipt_name) : "—"}</td>` : ""}<td>${badge(row.status)}</td><td class="payment-note-cell">${esc(payment?.note || "—")}</td></tr>`;
+    return `<tr class="clickable-row" data-action="tenant-payment-detail" data-payment-id="${esc(payment?.id || "")}" data-period="${esc(row.period)}" data-due-date="${esc(row.dueDate)}" data-amount="${esc(row.amountDue)}" data-paid="${esc(row.amountPaid)}" data-status="${esc(row.status)}" tabindex="0" aria-label="Apri dettagli pagamento ${esc(monthLabel(row.period))}"><td>${esc(monthLabel(row.period))}</td><td>${dateLabel(row.dueDate)}</td><td class="number">${money(row.amountDue)}</td><td>${payment?.paid_at ? dateLabel(payment.paid_at) : "—"}</td>${row.period < isoMonth() ? `<td>${payment?.receipt_name ? esc(payment.receipt_name) : "—"}</td>` : ""}<td>${badge(row.status)}</td><td class="payment-note-cell">${esc(payment?.note || "—")}</td></tr>`;
+  }
+
+  function openPaymentDetail(paymentId) {
+    const payment = state.data.rent_payments.find((item) => item.id === paymentId);
+    if (!payment) { toast("Pagamento non trovato.", "error"); return; }
+    const lease = getLease(payment.lease_id);
+    const tenant = getProfile(payment.tenant_id || lease?.tenant_ids?.[0]);
+    const property = getProperty(payment.property_id);
+    const body = `<div class="detail-list"><div class="detail-list-row"><span>Inquilino / immobile</span><strong>${esc(tenant?.display_name || "Inquilino")} · ${esc(property?.name || "Immobile")}</strong></div><div class="detail-list-row"><span>Periodo</span><strong>${esc(monthLabel(payment.period))}</strong></div><div class="detail-list-row"><span>Scadenza</span><strong>${dateLabel(payment.due_date)}</strong></div><div class="detail-list-row"><span>Importo dovuto / pagato</span><strong>${money(payment.amount_due)} / ${money(payment.amount_paid || 0)}</strong></div><div class="detail-list-row"><span>Stato</span><strong>${esc(statusLabel(payment.status))}</strong></div><div class="detail-list-row"><span>Pagato il</span><strong>${payment.paid_at ? dateLabel(payment.paid_at) : "—"}</strong></div>${payment.receipt_name ? `<div class="detail-list-row"><span>Contabile</span><strong>${esc(payment.receipt_name)}</strong></div>` : ""}</div><form data-form="payment-note" data-payment-id="${esc(payment.id)}" class="payment-detail-note"><div class="field"><label for="field-payment-detail-note">Nota del pagamento</label><textarea id="field-payment-detail-note" name="note" maxlength="500" placeholder="es. 100 euro anticipo idraulico">${esc(payment.note || "")}</textarea><small>La nota sarà visibile anche all’inquilino.</small></div><div class="dialog-foot" style="margin:18px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Chiudi</button><button class="button" type="submit">Salva nota</button></div></form>`;
+    openDialog(dialogTemplate("Dettaglio pagamento", `${monthLabel(payment.period)} · ${property?.name || "Immobile"}`, body));
+  }
+
+  function openTenantPaymentDetail(target) {
+    const payment = state.data.rent_payments.find((item) => item.id === target.dataset.paymentId);
+    const period = payment?.period || target.dataset.period || "";
+    const note = payment?.note || "Nessuna nota inserita.";
+    const body = `<div class="detail-list"><div class="detail-list-row"><span>Periodo</span><strong>${esc(monthLabel(period))}</strong></div><div class="detail-list-row"><span>Scadenza</span><strong>${dateLabel(payment?.due_date || target.dataset.dueDate)}</strong></div><div class="detail-list-row"><span>Importo</span><strong>${money(payment?.amount_due ?? target.dataset.amount)}</strong></div><div class="detail-list-row"><span>Pagato</span><strong>${money(payment?.amount_paid ?? target.dataset.paid)}</strong></div><div class="detail-list-row"><span>Pagato il</span><strong>${payment?.paid_at ? dateLabel(payment.paid_at) : "—"}</strong></div><div class="detail-list-row"><span>Stato</span><strong>${esc(statusLabel(payment?.status || target.dataset.status || "pending"))}</strong></div><div class="detail-list-row"><span>Nota</span><strong>${esc(note)}</strong></div>${payment?.receipt_name ? `<div class="detail-list-row"><span>Contabile</span><strong>${esc(payment.receipt_name)}</strong></div>` : ""}</div><div class="dialog-foot" style="margin:18px -22px -20px"><button class="button" type="button" data-action="close-dialog">Chiudi</button></div>`;
+    openDialog(dialogTemplate("Dettaglio pagamento", monthLabel(period), body));
   }
 
   function empty(iconName, title, description) {
@@ -2025,6 +2043,8 @@
     if (action === "add-provider") return openForm("provider");
     if (action === "add-maintenance") return openForm("maintenance", { propertyId: target.dataset.propertyId || "" });
     if (action === "edit-maintenance") return openForm("maintenance", { jobId: target.dataset.jobId || "" });
+    if (action === "payment-detail") return openPaymentDetail(target.dataset.paymentId || "");
+    if (action === "tenant-payment-detail") return openTenantPaymentDetail(target);
     if (action === "add-financial") return openForm("financial", { propertyId: target.dataset.propertyId || "" });
     if (action === "add-utility") return openForm("utility", { propertyId: target.dataset.propertyId || "" });
     if (action === "add-document") return openForm("document", { propertyId: target.dataset.propertyId || "" });
@@ -2824,6 +2844,13 @@
     document.title = APP_NAME;
     dialog.addEventListener("click", (event) => { if (event.target === dialog) closeDialog(); });
     document.addEventListener("click", handleClick);
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const row = event.target.closest?.("tr.clickable-row");
+      if (!row || event.target !== row) return;
+      event.preventDefault();
+      handleClick({ target: row });
+    });
     document.addEventListener("input", handleInput);
     document.addEventListener("change", handleInput);
     document.addEventListener("submit", handleSubmit);
