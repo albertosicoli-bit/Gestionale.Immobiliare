@@ -1002,7 +1002,7 @@
 
   function leaseCard(lease) {
     const tenants = (lease.tenant_ids || []).map(getProfile).filter(Boolean);
-    return `<div style="padding:0 20px 20px"><div class="panel pad" style="box-shadow:none;border-radius:14px"><div class="section-head"><div><h2>${esc(lease.contract_reference || "Contratto di locazione")}</h2><p>${dateLabel(lease.start_date)} — ${dateLabel(lease.end_date)} · Scadenza canone giorno ${esc(lease.due_day)}</p></div><div class="panel-actions">${badge(lease.status === "active" ? "active" : lease.status)}${deleteButton("lease", lease.id)}</div></div><div class="detail-grid"><article class="data-tile"><span>Canone mensile</span><strong>${money(lease.monthly_rent)}</strong></article><article class="data-tile"><span>Deposito</span><strong>${money(lease.deposit)}</strong></article><article class="data-tile"><span>Inquilini</span><strong>${tenants.length}</strong></article></div><div class="detail-list" style="margin-top:13px">${tenants.map((tenant) => `<div class="detail-list-row"><span><strong style="text-align:left">${esc(tenant.display_name)}</strong><br><small>${esc(tenant.email || tenant.username || "")}</small></span><span>${esc(tenant.phone || "—")}</span></div>`).join("")}</div></div></div>`;
+    return `<div style="padding:0 20px 20px"><div class="panel pad" style="box-shadow:none;border-radius:14px"><div class="section-head"><div><h2>${esc(lease.contract_reference || "Contratto di locazione")}</h2><p>${dateLabel(lease.start_date)} — ${dateLabel(lease.end_date)} · Scadenza canone giorno ${esc(lease.due_day)}</p></div><div class="panel-actions">${badge(lease.status === "active" ? "active" : lease.status)}<button class="button secondary small" data-action="edit-lease" data-lease-id="${esc(lease.id)}">Modifica</button>${deleteButton("lease", lease.id)}</div></div><div class="detail-grid"><article class="data-tile"><span>Canone mensile</span><strong>${money(lease.monthly_rent)}</strong></article><article class="data-tile"><span>Deposito</span><strong>${money(lease.deposit)}</strong></article><article class="data-tile"><span>Inquilini</span><strong>${tenants.length}</strong></article></div><div class="detail-list" style="margin-top:13px">${tenants.map((tenant) => `<div class="detail-list-row"><span><strong style="text-align:left">${esc(tenant.display_name)}</strong><br><small>${esc(tenant.email || tenant.username || "")}</small></span><span>${esc(tenant.phone || "—")}</span></div>`).join("")}</div></div></div>`;
   }
 
   function renderPropertyFinance(property) {
@@ -1116,7 +1116,7 @@
         <article class="data-tile"><span>Mesi pagati / scaduti</span><strong>${paidRows.length} / ${dueRows.length}</strong></article>
         <article class="data-tile"><span>Residuo atteso da verificare</span><strong>${money(outstanding)}</strong></article>
       </section>
-      <section class="panel"><div class="panel-head"><div><h2>Contratti</h2><p>Data di ingresso, scadenza e importo pattuito.</p></div></div>${leases.length ? `<div class="contract-list">${leases.map((lease) => `<article class="contract-summary"><div class="section-head"><div><h3>${esc(lease.contract_reference || getProperty(lease.property_id)?.name || "Contratto di locazione")}</h3><p>${esc(getProperty(lease.property_id)?.name || "Immobile non disponibile")} · ${dateLabel(lease.start_date)} — ${dateLabel(lease.end_date)}</p></div><div class="panel-actions">${badge(lease.status === "active" ? "active" : lease.status)}${deleteButton("lease", lease.id)}</div></div><div class="detail-grid"><article class="data-tile"><span>Canone mensile</span><strong>${money(lease.monthly_rent)}</strong></article><article class="data-tile"><span>Deposito</span><strong>${money(lease.deposit)}</strong></article><article class="data-tile"><span>Scadenza mensile</span><strong>Giorno ${esc(lease.due_day || "—")}</strong></article></div></article>`).join("")}</div>` : empty("fileText", "Nessun contratto collegato", "Collega l’inquilino a un contratto dalla scheda dell’immobile.")}</section>
+      <section class="panel"><div class="panel-head"><div><h2>Contratti</h2><p>Data di ingresso, scadenza e importo pattuito.</p></div></div>${leases.length ? `<div class="contract-list">${leases.map((lease) => `<article class="contract-summary"><div class="section-head"><div><h3>${esc(lease.contract_reference || getProperty(lease.property_id)?.name || "Contratto di locazione")}</h3><p>${esc(getProperty(lease.property_id)?.name || "Immobile non disponibile")} · ${dateLabel(lease.start_date)} — ${dateLabel(lease.end_date)}</p></div><div class="panel-actions">${badge(lease.status === "active" ? "active" : lease.status)}<button class="button secondary small" data-action="edit-lease" data-lease-id="${esc(lease.id)}">Modifica</button>${deleteButton("lease", lease.id)}</div></div><div class="detail-grid"><article class="data-tile"><span>Canone mensile</span><strong>${money(lease.monthly_rent)}</strong></article><article class="data-tile"><span>Deposito</span><strong>${money(lease.deposit)}</strong></article><article class="data-tile"><span>Scadenza mensile</span><strong>Giorno ${esc(lease.due_day || "—")}</strong></article></div></article>`).join("")}</div>` : empty("fileText", "Nessun contratto collegato", "Collega l’inquilino a un contratto dalla scheda dell’immobile.")}</section>
       <section class="panel"><div class="panel-head"><div><h2>Previsionale e storico canoni</h2><p>Scadenze future, pagamenti registrati e note associate a ogni rata.</p></div></div>${ledger.length ? `<div class="callout history-note">Se più inquilini condividono lo stesso contratto, importo e stato del canone sono riferiti al contratto condiviso.</div><div class="table-wrap"><table><thead><tr><th>Periodo</th><th>Immobile</th><th>Scadenza</th><th>Dovuto</th><th>Pagato</th><th>Stato</th><th>Nota</th><th></th></tr></thead><tbody>${ledger.map((row) => rentLedgerRow(row)).join("")}</tbody></table></div>` : empty("coins", "Nessuno storico canoni", "Le rate mensili compariranno qui quando è presente un contratto.")}</section>
       ${utilitySection}
     </div>`;
@@ -1872,7 +1872,7 @@
       return;
     }
     if (kind === "tenant") {
-      const body = `<form data-form="tenant" data-property-id="${esc(context.propertyId || "")}"><div class="callout">In demo viene creato un profilo locale. Con Supabase, l’email e la password scelti qui diventeranno le credenziali reali dell’inquilino.</div><div class="form-separator"></div><div class="form-grid">${field("Nome e cognome", "display_name", "text", "", { required: true })}${field("Username visualizzato", "username", "text", "", { required: true, placeholder: "nome.cognome" })}${field("Email", "email", "email", "", { required: true })}${field("Password iniziale", "password", "password", "", { required: true, help: "Almeno 8 caratteri. Sarà richiesta solo nel backend, non viene salvata nella scheda." })}${field("Telefono", "phone", "tel", "")}${selectField("Immobile", "property_id", context.propertyId || "", state.data.properties.map((p) => [p.id, p.name]))}${field("Canone mensile", "monthly_rent", "number", property ? propertyRent(property.id) || "" : "", { required: true, attributes: "min=0 step=1" })}${field("Scadenza canone (giorno del mese)", "due_day", "number", "5", { required: true, attributes: "min=1 max=28", help: "Questo giorno servirà per programmare gli alert di scadenza." })}${field("Inizio contratto", "start_date", "date", dateISO(), { required: true })}${field("Fine contratto", "end_date", "date", dateISO(365), { required: true })}</div><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">Crea e collega</button></div></form>`;
+      const body = `<form data-form="tenant" data-property-id="${esc(context.propertyId || "")}"><div class="callout">In demo viene creato un profilo locale. Con Supabase, l’email e la password scelti qui diventeranno le credenziali reali dell’inquilino.</div><div class="form-separator"></div><div class="form-grid">${field("Nome e cognome", "display_name", "text", "", { required: true })}${field("Username visualizzato", "username", "text", "", { required: true, placeholder: "nome.cognome" })}${field("Email", "email", "email", "", { required: true })}${field("Password iniziale", "password", "password", "", { required: true, help: "Almeno 8 caratteri. Sarà richiesta solo nel backend, non viene salvata nella scheda." })}${field("Telefono", "phone", "tel", "")}${selectField("Immobile", "property_id", context.propertyId || "", state.data.properties.map((p) => [p.id, p.name]))}${field("Canone mensile", "monthly_rent", "number", property ? propertyRent(property.id) || "" : "", { required: true, attributes: "min=0 step=0.01" })}${field("Deposito cauzionale", "deposit", "number", "0", { attributes: "min=0 step=0.01", help: "Inserisci l’importo previsto dal contratto, oppure lascia 0 se non previsto." })}${field("Scadenza canone (giorno del mese)", "due_day", "number", "5", { required: true, attributes: "min=1 max=28", help: "Questo giorno servirà per programmare gli alert di scadenza." })}${field("Inizio contratto", "start_date", "date", dateISO(), { required: true })}${field("Fine contratto", "end_date", "date", dateISO(365), { required: true })}</div><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">Crea e collega</button></div></form>`;
       openDialog(dialogTemplate("Nuovo inquilino", "Crea il profilo e il relativo contratto attivo.", body));
       return;
     }
@@ -1908,6 +1908,13 @@
       const dueDate = context.dueDate || `${period}-${String(activeLease.due_day || 5).padStart(2, "0")}`;
       const body = `<form data-form="payment" data-tenant-id="${esc(context.tenantId || "")}"><input type="hidden" name="property_id" value="${esc(activeLease.property_id)}" /><input type="hidden" name="lease_id" value="${esc(activeLease.id)}" /><div class="form-grid">${field("Periodo", "period", "month", period, { required: true })}${field("Scadenza", "due_date", "date", dueDate, { required: true })}${field("Importo dovuto", "amount_due", "number", activeLease.monthly_rent, { required: true, attributes: "min=0 step=0.01" })}${selectField("Stato iniziale", "status", "pending", [["pending", "Da pagare"], ["paid", "Pagato"], ["partial", "Parziale"]])}<div class="field span-2"><label for="field-note">Nota per questa rata</label><textarea id="field-note" name="note" placeholder="es. 100 euro anticipo idraulico"></textarea></div></div><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">Crea canone</button></div></form>`;
       openDialog(dialogTemplate("Nuovo canone", "Crea una richiesta mensile per gli inquilini del contratto attivo.", body));
+      return;
+    }
+    if (kind === "lease-edit") {
+      const lease = contextLease;
+      if (!lease) { toast("Contratto non trovato.", "error"); return; }
+      const body = `<form data-form="lease-edit" data-lease-id="${esc(lease.id)}"><div class="form-grid">${field("Riferimento contratto", "contract_reference", "text", lease.contract_reference || "")}${field("Canone mensile", "monthly_rent", "number", lease.monthly_rent || 0, { required: true, attributes: "min=0 step=0.01" })}${field("Deposito cauzionale", "deposit", "number", lease.deposit || 0, { attributes: "min=0 step=0.01" })}${field("Scadenza canone (giorno del mese)", "due_day", "number", lease.due_day || 5, { required: true, attributes: "min=1 max=28" })}${field("Inizio contratto", "start_date", "date", String(lease.start_date || "").slice(0, 10), { required: true })}${field("Fine contratto", "end_date", "date", String(lease.end_date || "").slice(0, 10), { required: true })}</div><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">Salva contratto</button></div></form>`;
+      openDialog(dialogTemplate("Modifica contratto", "Aggiorna canone, deposito e date del contratto.", body));
       return;
     }
     if (kind === "payment-proof") {
@@ -2000,6 +2007,7 @@
       renderShell();
       return;
     }
+    if (action === "edit-lease") return openForm("lease-edit", { leaseId: target.dataset.leaseId || "" });
     if (action === "property-tab") {
       state.propertyTab = target.dataset.tab;
       renderView();
@@ -2181,7 +2189,7 @@
         const existingLease = activeLeaseForProperty;
         const lease = existingLease
           ? { ...existingLease, tenant_ids: [...new Set([...(existingLease.tenant_ids || []), tenant.id])] }
-          : { id: newId(), property_id: value("property_id"), tenant_ids: [tenant.id], monthly_rent: Number(value("monthly_rent")), deposit: 0, due_day: Number(value("due_day")), start_date: value("start_date"), end_date: value("end_date"), status: "active", contract_reference: `Contratto ${tenant.display_name}` };
+          : { id: newId(), property_id: value("property_id"), tenant_ids: [tenant.id], monthly_rent: Number(value("monthly_rent")), deposit: Number(value("deposit") || 0), due_day: Number(value("due_day")), start_date: value("start_date"), end_date: value("end_date"), status: "active", contract_reference: `Contratto ${tenant.display_name}` };
         if (supabaseClient && state.sessionUser) {
           const invited = await inviteTenant({ ...tenant, role: "tenant" });
           tenant.id = invited.id;
@@ -2306,6 +2314,23 @@
         await syncEntity("payment", updatedPayment, "update");
         Object.assign(payment, updatedPayment);
         finishMutation("Nota del pagamento salvata.");
+        return;
+      }
+      if (type === "lease-edit") {
+        const lease = getLease(form.dataset.leaseId);
+        if (!lease) throw new Error("Contratto non trovato.");
+        const updatedLease = {
+          ...lease,
+          contract_reference: value("contract_reference"),
+          monthly_rent: Number(value("monthly_rent")),
+          deposit: Number(value("deposit") || 0),
+          due_day: Number(value("due_day")),
+          start_date: value("start_date"),
+          end_date: value("end_date")
+        };
+        await syncEntity("lease", updatedLease, "update");
+        Object.assign(lease, updatedLease);
+        finishMutation("Dati del contratto aggiornati.");
         return;
       }
       if (type === "payment-proof") {
