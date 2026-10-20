@@ -1068,7 +1068,7 @@
   }
 
   function maintenanceTable(jobs) {
-    return `<div class="table-wrap"><table><thead><tr><th>Intervento</th><th>Immobile</th><th>Fornitore</th><th>Data</th><th>Costo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${jobs.map((job) => `<tr><td><strong>${esc(job.title)}</strong><br><small>${esc(job.category || "")}</small></td><td>${esc(getProperty(job.property_id)?.name || "—")}</td><td>${esc(getProvider(job.provider_id)?.display_name || "Non assegnato")}</td><td>${dateLabel(job.completed_date || job.scheduled_date)}</td><td class="number">${job.total_cost ? money(job.total_cost) : "—"}</td><td>${badge(job.status)}</td><td>${deleteButton("maintenance", job.id)}</td></tr>`).join("")}</tbody></table></div>`;
+    return `<div class="table-wrap"><table><thead><tr><th>Intervento</th><th>Immobile</th><th>Fornitore</th><th>Data</th><th>Costo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${jobs.map((job) => `<tr><td><strong>${esc(job.title)}</strong><br><small>${esc(job.category || "")}</small></td><td>${esc(getProperty(job.property_id)?.name || "—")}</td><td>${esc(getProvider(job.provider_id)?.display_name || "Non assegnato")}</td><td>${dateLabel(job.completed_date || job.scheduled_date)}</td><td class="number">${job.total_cost ? money(job.total_cost) : "—"}</td><td>${badge(job.status)}</td><td><div class="panel-actions"><button class="button secondary small" data-action="edit-maintenance" data-job-id="${esc(job.id)}">Modifica stato</button>${deleteButton("maintenance", job.id)}</div></td></tr>`).join("")}</tbody></table></div>`;
   }
 
   function providerCard(provider) {
@@ -1882,8 +1882,9 @@
       return;
     }
     if (kind === "maintenance") {
-      const body = `<form data-form="maintenance"><div class="form-grid">${selectField("Immobile", "property_id", context.propertyId || "", state.data.properties.map((p) => [p.id, p.name]))}<div class="field"><label for="field-provider_id">Fornitore</label><select id="field-provider_id" name="provider_id">${providerOptions()}</select></div>${field("Titolo intervento", "title", "text", "", { required: true, placeholder: "es. Sostituzione scaldabagno" })}${selectField("Categoria", "category", "Idraulico", [["Elettrico", "Elettrico"], ["Idraulico", "Idraulico"], ["Muratura", "Muratura"], ["Pulizia", "Pulizia"], ["Altro", "Altro"]])}${selectField("Priorità", "priority", "normal", [["low", "Bassa"], ["normal", "Normale"], ["high", "Alta"], ["urgent", "Urgente"]])}${selectField("Stato", "status", "scheduled", [["scheduled", "Programmato"], ["done", "Concluso"], ["cancelled", "Annullato"]])}${field("Data prevista/eseguita", "scheduled_date", "date", dateISO(), { required: true })}${field("Costo complessivo", "total_cost", "number", "", { attributes: "min=0 step=0.01", help: "Se concluso, il costo genera anche una uscita nel conto economico." })}<div class="field span-2"><label for="field-notes">Cosa è stato fatto</label><textarea id="field-notes" name="notes" placeholder="Descrizione dell’intervento, materiali, garanzia…"></textarea></div></div><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">Salva intervento</button></div></form>`;
-      openDialog(dialogTemplate("Registra intervento", "Collega attività, costo e manutentore alla singola proprietà.", body));
+      const job = context.jobId ? state.data.maintenance_jobs.find((item) => item.id === context.jobId) : null;
+      const body = `<form data-form="maintenance" data-job-id="${esc(job?.id || "")}"><div class="form-grid">${selectField("Immobile", "property_id", job?.property_id || context.propertyId || "", state.data.properties.map((p) => [p.id, p.name]))}<div class="field"><label for="field-provider_id">Fornitore</label><select id="field-provider_id" name="provider_id">${providerOptions(job?.provider_id || "")}</select></div>${field("Titolo intervento", "title", "text", job?.title || "", { required: true, placeholder: "es. Sostituzione scaldabagno" })}${selectField("Categoria", "category", job?.category || "Idraulico", [["Elettrico", "Elettrico"], ["Idraulico", "Idraulico"], ["Muratura", "Muratura"], ["Pulizia", "Pulizia"], ["Altro", "Altro"]])}${selectField("Priorità", "priority", job?.priority || "normal", [["low", "Bassa"], ["normal", "Normale"], ["high", "Alta"], ["urgent", "Urgente"]])}${selectField("Stato", "status", job?.status || "scheduled", [["scheduled", "Programmato"], ["done", "Concluso"], ["cancelled", "Annullato"]])}${field("Data prevista/eseguita", "scheduled_date", "date", job?.scheduled_date || dateISO(), { required: true })}${field("Costo complessivo", "total_cost", "number", job?.total_cost || "", { attributes: "min=0 step=0.01", help: "Se concluso, il costo genera anche una uscita nel conto economico." })}<div class="field span-2"><label for="field-notes">Cosa è stato fatto</label><textarea id="field-notes" name="notes" placeholder="Descrizione dell’intervento, materiali, garanzia…">${esc(job?.notes || "")}</textarea></div></div><div class="dialog-foot" style="margin:20px -22px -20px"><button class="button secondary" type="button" data-action="close-dialog">Annulla</button><button class="button" type="submit">${job ? "Salva modifiche" : "Salva intervento"}</button></div></form>`;
+      openDialog(dialogTemplate(job ? "Modifica intervento" : "Registra intervento", job ? "Aggiorna lo stato, la data, il costo o le note." : "Collega attività, costo e manutentore alla singola proprietà.", body));
       return;
     }
     if (kind === "financial") {
@@ -2023,6 +2024,7 @@
     if (action === "add-tenant") return openForm("tenant", { propertyId: target.dataset.propertyId || "" });
     if (action === "add-provider") return openForm("provider");
     if (action === "add-maintenance") return openForm("maintenance", { propertyId: target.dataset.propertyId || "" });
+    if (action === "edit-maintenance") return openForm("maintenance", { jobId: target.dataset.jobId || "" });
     if (action === "add-financial") return openForm("financial", { propertyId: target.dataset.propertyId || "" });
     if (action === "add-utility") return openForm("utility", { propertyId: target.dataset.propertyId || "" });
     if (action === "add-document") return openForm("document", { propertyId: target.dataset.propertyId || "" });
@@ -2226,24 +2228,21 @@
         return;
       }
       if (type === "maintenance") {
-        const job = { id: newId(), property_id: value("property_id"), provider_id: value("provider_id") || null, title: value("title"), category: value("category"), priority: value("priority"), status: value("status"), scheduled_date: value("scheduled_date"), completed_date: value("status") === "done" ? value("scheduled_date") : null, total_cost: Number(value("total_cost") || 0), notes: value("notes") };
-        assertNoDuplicate(state.data.maintenance_jobs, job, (saved, next) =>
+        const existingJob = form.dataset.jobId ? state.data.maintenance_jobs.find((item) => item.id === form.dataset.jobId) : null;
+        const job = { id: existingJob?.id || newId(), property_id: value("property_id"), provider_id: value("provider_id") || null, title: value("title"), category: value("category"), priority: value("priority"), status: value("status"), scheduled_date: value("scheduled_date"), completed_date: value("status") === "done" ? value("scheduled_date") : null, total_cost: Number(value("total_cost") || 0), notes: value("notes") };
+        if (!existingJob) assertNoDuplicate(state.data.maintenance_jobs, job, (saved, next) =>
           saved.property_id === next.property_id && saved.provider_id === next.provider_id &&
           normalizedKey(saved.title) === normalizedKey(next.title) && saved.scheduled_date === next.scheduled_date,
         "Questo intervento risulta già registrato per la stessa data e immobile.");
-        const generatedExpense = job.status === "done" && job.total_cost > 0
-          ? { id: newId(), property_id: job.property_id, direction: "expense", category: `Manutenzione · ${job.category}`, amount: job.total_cost, date: job.completed_date, status: "paid", description: job.title }
-          : null;
-        const expenseAlreadyExists = generatedExpense && state.data.financial_entries.some((saved) =>
-          saved.property_id === generatedExpense.property_id && saved.direction === generatedExpense.direction &&
-          saved.amount === generatedExpense.amount && saved.date === generatedExpense.date &&
-          normalizedKey(saved.category) === normalizedKey(generatedExpense.category) &&
-          normalizedKey(saved.description) === normalizedKey(generatedExpense.description));
-        await syncEntity("maintenance", job, "insert");
-        if (generatedExpense && !expenseAlreadyExists) await syncEntity("financial", generatedExpense, "insert");
-        state.data.maintenance_jobs.push(job);
-        if (generatedExpense && !expenseAlreadyExists) state.data.financial_entries.push(generatedExpense);
-        finishMutation("Intervento salvato.");
+        await syncEntity("maintenance", job, existingJob ? "update" : "insert");
+        if (job.status === "done" && job.total_cost > 0) {
+          const linkedExpense = state.data.financial_entries.find((entry) => entry.property_id === job.property_id && entry.direction === "expense" && normalizedKey(entry.description) === normalizedKey(existingJob?.title || job.title) && normalizedKey(entry.category).startsWith("manutenzione"));
+          const expense = { ...(linkedExpense || {}), id: linkedExpense?.id || newId(), property_id: job.property_id, direction: "expense", category: `Manutenzione · ${job.category}`, amount: job.total_cost, date: job.completed_date, status: "paid", description: job.title };
+          await syncEntity("financial", expense, linkedExpense ? "update" : "insert");
+          if (linkedExpense) Object.assign(linkedExpense, expense); else state.data.financial_entries.push(expense);
+        }
+        if (existingJob) Object.assign(existingJob, job); else state.data.maintenance_jobs.push(job);
+        finishMutation(existingJob ? `Intervento aggiornato: ${statusLabel(job.status)}.` : "Intervento salvato.");
         return;
       }
       if (type === "financial") {
